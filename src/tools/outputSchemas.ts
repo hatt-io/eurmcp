@@ -201,6 +201,11 @@ const evidenceSemanticsSchema = z.strictObject({
   methodology: z.string()
 });
 
+const caseSearchEvidenceSchema = evidenceSemanticsSchema.extend({
+  paragraph: z.number().int().positive().optional(),
+  source_anchor: sourceAnchorSchema.optional()
+});
+
 const caseSummarySchema = z.strictObject({
   case_number: z.string(),
   case_name: optionalString,
@@ -212,7 +217,7 @@ const caseSummarySchema = z.strictObject({
   date: optionalString,
   eurlex_url: optionalString,
   curia_url: optionalString,
-  match_evidence: z.array(evidenceSemanticsSchema).optional(),
+  match_evidence: z.array(caseSearchEvidenceSchema).optional(),
   provenance: provenanceSchema
 });
 

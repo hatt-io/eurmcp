@@ -13,7 +13,7 @@ import type {
 
 export const CELLAR_XHTML_PARSER = Object.freeze({
   name: 'cellar-official-xhtml',
-  version: '2.0.0'
+  version: '2.1.0'
 });
 
 export type ParserContext = {
@@ -41,8 +41,17 @@ export type ParsedCase = {
   anchors: { anchor: SourceAnchor; text: string }[];
 };
 
+function attributeValue(element: Element, name: string): string | null {
+  const direct = element.getAttribute(name);
+  if (direct !== null) return direct;
+  const matchingName = Array.from(element.attributes).find(
+    (attribute) => attribute.name.toLowerCase() === name.toLowerCase()
+  )?.name;
+  return matchingName ? element.getAttribute(matchingName) : null;
+}
+
 function structuralPath(element: Element): string {
-  const id = element.getAttribute('id');
+  const id = attributeValue(element, 'id');
   if (id) return `#${id}`;
   const parts: string[] = [];
   let current: Element | null = element;
@@ -68,7 +77,7 @@ function sourceAnchor(
 ): SourceAnchor | undefined {
   if (!context) return undefined;
   const parserVersion = context.parserVersion ?? CELLAR_XHTML_PARSER.version;
-  const sourceElementId = element.getAttribute('id') || undefined;
+  const sourceElementId = attributeValue(element, 'id') || undefined;
   return {
     anchor_id: sha256(`${context.evidenceId}\0${parserVersion}\0${location}`),
     kind,
@@ -450,42 +459,61 @@ export function extractRecitals(
 
 export function parseCaseXhtml(source: string, context?: ParserContext): ParsedCase {
   const document = parseDocument(source);
-  const countElements = Array.from(document.querySelectorAll('p.coj-count[id^="point"]'));
-  if (!countElements.length) {
+  const modernCountElements = Array.from(
+    document.querySelectorAll('p.coj-count[id^="point"], p.count[id^="point"]')
+  );
+  const legacyParagraphs = Array.from(document.querySelectorAll('p[class]')).filter((element) =>
+    /pointnumerote/i.test(attributeValue(element, 'class') ?? '')
+  );
+  if (!modernCountElements.length && !legacyParagraphs.length) {
     throw new EuLawError(
       'UPSTREAM_FORMAT_CHANGED',
       'Expected numbered judgment paragraphs were not found',
       {
-        expected: 'p.coj-count[id^=point]'
+        expected: [
+          'p.coj-count[id^=point]',
+          'p.count[id^=point]',
+          'p.C01Pointnumerote* > a[name^=point]'
+        ]
       }
     );
   }
   const seen = new Set<number>();
-  const paragraphs = countElements.map((countElement) => {
-    const idNumber = Number.parseInt(
-      (countElement.getAttribute('id') ?? '').replace(/^point/, ''),
-      10
-    );
+  const paragraphElements = modernCountElements.length ? modernCountElements : legacyParagraphs;
+  const paragraphs = paragraphElements.map((element) => {
+    const modern = modernCountElements.length > 0;
+    const countElement = modern
+      ? element
+      : Array.from(element.querySelectorAll('a')).find((anchor) =>
+          /^point\d+$/i.test(attributeValue(anchor, 'name') ?? '')
+        );
+    if (!countElement) {
+      throw new EuLawError('UPSTREAM_FORMAT_CHANGED', 'Judgment paragraph marker is missing');
+    }
+    const marker = modern
+      ? attributeValue(countElement, 'id')
+      : attributeValue(countElement, 'name');
+    const idNumber = Number.parseInt((marker ?? '').replace(/^point/i, ''), 10);
     const visibleNumber = Number.parseInt(textWithoutNotes(countElement), 10);
     if (!Number.isInteger(idNumber) || idNumber !== visibleNumber || seen.has(idNumber)) {
       throw new EuLawError(
         'UPSTREAM_FORMAT_CHANGED',
         'Judgment paragraph numbering is inconsistent',
         {
-          paragraph_id: countElement.getAttribute('id'),
+          paragraph_id: marker,
           visible_number: textWithoutNotes(countElement)
         }
       );
     }
     seen.add(idNumber);
-    const numberCell = countElement.parentElement;
-    const textCell = numberCell?.nextElementSibling;
-    if (!textCell) {
+    const numberCell = modern ? countElement.parentElement : undefined;
+    const textCell = modern ? numberCell?.nextElementSibling : element;
+    if (!textCell)
       throw new EuLawError('UPSTREAM_FORMAT_CHANGED', 'Judgment paragraph text cell is missing', {
         paragraph: idNumber
       });
-    }
-    const text = textWithoutNotes(textCell);
+    const rawText = textWithoutNotes(textCell);
+    const text = modern ? rawText : rawText.replace(new RegExp(`^${idNumber}\\s*`), '').trim();
     if (!text) {
       throw new EuLawError('UPSTREAM_FORMAT_CHANGED', 'Judgment paragraph text is empty', {
         paragraph: idNumber
@@ -496,16 +524,21 @@ export function parseCaseXhtml(source: string, context?: ParserContext): ParsedC
       context,
       'case_paragraph',
       `Paragraph ${idNumber}`,
-      countElement,
+      modern ? countElement : element,
       text
     );
     if (anchor) paragraph.source_anchor = anchor;
     return paragraph;
   });
   const bodyText = textWithoutNotes(document.body);
-  const caseMatch = /\b([CTF])[-‑–— ](\d+)\/(\d{2,4})\b/.exec(bodyText);
+  const caseNumberPattern = /\b([CTF])[-‑–— ](\d+)\/(\d{2,4})\b/;
+  const caseMatch = caseNumberPattern.exec(source) ?? caseNumberPattern.exec(bodyText);
   const ecliMatch = /\bECLI:EU:[CTF]:\d{4}:\d+\b/.exec(bodyText);
-  const title = document.querySelector('.coj-doc-ti, .coj-title')?.textContent;
+  const title =
+    document.querySelector('.coj-doc-ti, .coj-title')?.textContent ??
+    Array.from(document.querySelectorAll('p'))
+      .map((element) => element.textContent)
+      .find((text) => /^\s*(?:judgment|order|opinion)\s+of\s+the\s+court/i.test(text ?? ''));
   const grounds = Array.from(document.querySelectorAll('p')).find((element) =>
     /^on those grounds$/i.test(normalized(element.textContent ?? ''))
   );

@@ -234,7 +234,16 @@ live.sequential('live authoritative EU services', () => {
       limit: 50
     });
     expect(cases.some((result) => result.celex === '62021CJ0300')).toBe(true);
-    expect(JSON.stringify(cases)).not.toContain('interprets Article 82');
+    expect(
+      cases.every((result) =>
+        result.match_evidence?.some(
+          (evidence) =>
+            evidence.field === 'case_paragraph' &&
+            evidence.paragraph &&
+            evidence.source_anchor?.kind === 'case_paragraph'
+        )
+      )
+    ).toBe(true);
   });
 
   it('uses authoritative citation relationships and official regulator sources', async () => {

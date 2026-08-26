@@ -123,6 +123,7 @@ export type CaseSearchQuery = {
   dateTo?: string;
   court?: 'court_of_justice' | 'general_court';
   documentType?: 'judgment' | 'order' | 'opinion';
+  requiresHtml?: boolean;
   limit: number;
 };
 
@@ -151,6 +152,7 @@ WHERE {
   ?expression cdm:expression_belongs_to_work ?work ;
     cdm:expression_uses_language <http://publications.europa.eu/resource/authority/language/${input.language}> ;
     cdm:expression_title ?title .
+  ${input.requiresHtml ? `?manifestation cdm:manifestation_manifests_expression ?expression ; cdm:manifestation_type ?format . ?item cdm:item_belongs_to_manifestation ?manifestation . FILTER(LCASE(STR(?format)) IN ("html", "xhtml"))` : ''}
   ${input.query ? `?title bif:contains ${fullTextExpression(input.query)} OPTION (score ?rank) .` : ''}
   ${input.interpretedCelex ? `?interpreted cdm:resource_legal_id_celex ?interpretedCelex . FILTER(STR(?interpretedCelex) = ${sparqlString(input.interpretedCelex)}) ?work cdm:case-law_interpretes_resource_legal ?interpreted .` : ''}
   ${WORK_FIELDS}

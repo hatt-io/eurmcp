@@ -10,7 +10,7 @@ describe('versioned output contracts', () => {
     get_article: '68c01ce320d5295dd2b29bdd0b7bb3e68072735c863136aeab39cad30921c092',
     get_recitals: '193a56f39611278196e0428ad032bb6e9d1202655ea0771b412a72f483b54881',
     compare_document_versions: 'c89fea288d9b95b24a5d7b034e427b45045330bed70be7b3e5c5088eaccbb300',
-    search_eu_cases: '42b9130e10eaf9f3584e7d59e3717a1deb70e846ed9f5aea57dbea0a1b070bfa',
+    search_eu_cases: 'e4193a267f653914a73eccb9be20882aa8651cd34649f50b123f4e51987641bb',
     get_eu_case: 'a495d9b863d87e320c368631cb9a7ace6671b186a025303bc991ab47e613bc38',
     get_case_paragraphs: '44bc090ca77913528c61067b241f8ae110c7f90dbe47bc8c0ed2e5650489dbcd',
     find_cases_citing: '5b9ce325467a5a222bc23902079cbab882a32c8a587415dda901b8706e47ebc5',

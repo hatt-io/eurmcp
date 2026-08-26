@@ -40,7 +40,9 @@ At least one search criterion is required.
 
 `query` applies AND semantics to searchable tokens and matches only the official case title. Title matches are relevance-ranked.
 
-`provision` must contain a recognized instrument, such as `Article 82 GDPR` or `Article 82 of Regulation (EU) 2016/679`. It resolves aliases such as `GDPR`, but CELLAR establishes only an instrument-level relationship. It does not establish that the case mentions or interprets the requested article. An unrecognized instrument returns `INVALID_ARGUMENT`; the filter is never silently discarded.
+`provision` must contain one article and a recognized instrument, such as `Article 82 GDPR` or `Article 82 of Regulation (EU) 2016/679`. CELLAR instrument metadata identifies bounded candidates. Each candidate is then checked against its official numbered case paragraphs. A result is returned only when a numbered paragraph directly links that article citation to that instrument. Match evidence includes the paragraph text and source anchor. This establishes a textual citation, not a legal interpretation claim.
+
+`interpreted_celex` performs only the broader instrument-level metadata search and does not claim article-level relevance.
 
 ## Output
 

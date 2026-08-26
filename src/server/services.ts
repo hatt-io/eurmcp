@@ -6,13 +6,18 @@ import { EuLawError } from '../errors/errors.js';
 import {
   caseNumberToCelex,
   celexToCaseNumber,
-  instrumentAliases,
-  normalizeCelex,
   normalizeEcli,
   parseIdentifier,
   type CaseIdentifier,
   type LegislationIdentifier
 } from '../legal/identifiers.js';
+import {
+  findCaseProvisionMentions,
+  normalizeCaseCelex,
+  normalizeInterpretedCelex,
+  parseCaseProvisionReference,
+  type CaseProvisionReference
+} from '../legal/caseSearch.js';
 import { normalizeDocumentType, resourceTypeName } from '../legal/documentTypes.js';
 import { normalizeForDiff } from '../legal/citations.js';
 import { normalizeLanguage } from '../legal/languages.js';
@@ -32,7 +37,13 @@ import type { EdpbClient } from '../sources/edpb/client.js';
 import type { EdpsClient } from '../sources/edps/client.js';
 import type { EurLexClient } from '../sources/eurlex/client.js';
 import { eurLexEcliUrl } from '../sources/eurlex/links.js';
-import type { DocumentRelationship, ParsedArticle, Provenance, SourceAnchor } from '../types.js';
+import type {
+  CaseParagraph,
+  DocumentRelationship,
+  ParsedArticle,
+  Provenance,
+  SourceAnchor
+} from '../types.js';
 
 type ResolvedDocument = { work: CellarWork; celex: string };
 type ResolvedVersion = ResolvedDocument & { version: VersionInfo };
@@ -116,6 +127,13 @@ function cellarProvenance(
   });
 }
 
+type CapturedEvidence = NonNullable<Parameters<typeof cellarProvenance>[3]>;
+type CaseProvisionEvidence = {
+  mentions: CaseParagraph[];
+  evidence: CapturedEvidence;
+  sourceUrl: string;
+};
+
 function caseDocumentType(celex: string): string {
   const code = celex.slice(6, 7);
   return code === 'J'
@@ -130,64 +148,6 @@ function caseDocumentType(celex: string): string {
 function courtFromCelex(celex: string): string {
   const code = celex.slice(5, 6);
   return code === 'C' ? 'Court of Justice' : code === 'T' ? 'General Court' : 'EU court';
-}
-
-function extractInstrumentFromProvision(provision: string): string {
-  const match = /(?:Regulation|Directive|Decision)\s*(?:\(EU\))?\s*\d{4}\/\d+/i.exec(provision);
-  if (match) {
-    try {
-      const parsed = parseIdentifier(match[0]);
-      if (parsed.kind === 'legislation' && parsed.celex) return parsed.celex;
-    } catch {
-      // Report every unusable provision through the argument-specific error below.
-    }
-  }
-
-  const normalized = provision.normalize('NFKC').toUpperCase();
-  const alias = Object.keys(instrumentAliases)
-    .sort((left, right) => right.length - left.length)
-    .find((candidate) => {
-      const escaped = candidate.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      return new RegExp(`(?:^|[^\\p{L}\\p{N}])${escaped}(?:$|[^\\p{L}\\p{N}])`, 'u').test(
-        normalized
-      );
-    });
-  if (alias) {
-    const parsed = parseIdentifier(alias);
-    if (parsed.kind === 'legislation' && parsed.celex) return parsed.celex;
-  }
-
-  throw new EuLawError(
-    'INVALID_ARGUMENT',
-    'Provision must identify an instrument, for example "Article 82 GDPR" or "Article 82 of Regulation (EU) 2016/679"',
-    { argument: 'provision', value: provision }
-  );
-}
-
-function normalizeCaseCelex(celex: string): string {
-  const normalized = normalizeCelex(celex);
-  const parsed = parseIdentifier(normalized);
-  if (parsed.kind !== 'case') {
-    throw new EuLawError(
-      'INVALID_ARGUMENT',
-      'celex must be a case-law CELEX identifier; use interpreted_celex for legislation',
-      { argument: 'celex', value: celex, expected: 'case-law CELEX beginning with 6' }
-    );
-  }
-  return normalized;
-}
-
-function normalizeInterpretedCelex(celex: string): string {
-  const normalized = normalizeCelex(celex);
-  const parsed = parseIdentifier(normalized);
-  if (parsed.kind !== 'legislation') {
-    throw new EuLawError('INVALID_ARGUMENT', 'interpreted_celex must identify legislation', {
-      argument: 'interpreted_celex',
-      value: celex,
-      expected: 'legislation CELEX'
-    });
-  }
-  return normalized;
 }
 
 export class LegalResearchService {
@@ -775,6 +735,26 @@ export class LegalResearchService {
     return { lang, resolved, downloaded, parsed, canonicalCase, discrepancies, evidence };
   }
 
+  async #findCaseProvisionEvidence(
+    work: CellarWork,
+    reference: CaseProvisionReference,
+    language: string
+  ) {
+    const item = await this.#cellar.getXhtmlItem(work.cellarUri, language);
+    const downloaded = await this.#cellar.downloadXhtml(item, cacheTtl.immutableJudgment);
+    const parsed = parseCaseXhtml(downloaded.text(), {
+      evidenceId: `sha256:${downloaded.rawSha256}`
+    });
+    const mentions = findCaseProvisionMentions(parsed.paragraphs, reference);
+    if (!mentions.length) return undefined;
+    const evidence = await this.#captureEvidence(
+      downloaded,
+      parsed.paragraphs.map((paragraph) => paragraph.text).join(' '),
+      parsed.anchors
+    );
+    return { mentions, evidence, sourceUrl: downloaded.url };
+  }
+
   async searchEuCases(input: {
     query?: string;
     case_number?: string;
@@ -810,11 +790,18 @@ export class LegalResearchService {
         ? caseNumberToCelex(input.case_number, input.document_type)
         : undefined;
     const ecli = input.ecli ? normalizeEcli(input.ecli) : undefined;
+    const provisionReference = input.provision
+      ? parseCaseProvisionReference(input.provision)
+      : undefined;
     const interpretedCelex = input.interpreted_celex
       ? normalizeInterpretedCelex(input.interpreted_celex)
-      : input.provision
-        ? extractInstrumentFromProvision(input.provision)
-        : undefined;
+      : provisionReference?.interpretedCelex;
+    const requestedLimit = input.limit ?? 10;
+    const candidateLimit = provisionReference
+      ? celex || ecli
+        ? requestedLimit
+        : Math.min(500, Math.max(100, requestedLimit * 5))
+      : requestedLimit;
     const rows = await this.#cellar.searchCaseLaw({
       ...(input.query ? { query: input.query } : {}),
       language: lang.cellar,
@@ -825,9 +812,37 @@ export class LegalResearchService {
       ...(input.date_to ? { dateTo: input.date_to } : {}),
       ...(input.court ? { court: input.court } : {}),
       ...(input.document_type ? { documentType: input.document_type } : {}),
-      limit: input.limit ?? 10
+      ...(provisionReference ? { requiresHtml: true } : {}),
+      limit: candidateLimit
     });
-    return rows.map((work) => {
+
+    const matchedRows: Array<{
+      work: CellarWork;
+      provisionEvidence?: CaseProvisionEvidence;
+    }> = [];
+    if (provisionReference) {
+      const batchSize = 4;
+      for (
+        let offset = 0;
+        offset < rows.length && matchedRows.length < requestedLimit;
+        offset += batchSize
+      ) {
+        const batch = rows.slice(offset, offset + batchSize);
+        const evidence = await Promise.all(
+          batch.map((work) =>
+            this.#findCaseProvisionEvidence(work, provisionReference, lang.cellar)
+          )
+        );
+        for (const [index, provisionEvidence] of evidence.entries()) {
+          const work = batch[index];
+          if (work && provisionEvidence) matchedRows.push({ work, provisionEvidence });
+        }
+      }
+    } else {
+      matchedRows.push(...rows.map((work) => ({ work })));
+    }
+
+    return matchedRows.slice(0, requestedLimit).map(({ work, provisionEvidence }) => {
       const caseNumber = work.celex ? celexToCaseNumber(work.celex) : undefined;
       const evidence = [
         ...(input.query
@@ -842,19 +857,30 @@ export class LegalResearchService {
               }
             ]
           : []),
-        ...(interpretedCelex
-          ? [
-              {
-                field: 'case-law_interpretes_resource_legal',
-                value: `Instrument ${interpretedCelex}; this metadata does not establish a specific-article interpretation.`,
-                evidence_type: 'authoritative_classification' as const,
-                scope: 'instrument',
-                direction: 'case_to_instrument',
-                source_predicate: 'cdm:case-law_interpretes_resource_legal',
-                methodology: 'Authoritative CELLAR instrument-level classification'
-              }
-            ]
-          : [])
+        ...(provisionEvidence && provisionReference
+          ? provisionEvidence.mentions.map((paragraph) => ({
+              field: 'case_paragraph',
+              value: paragraph.text,
+              evidence_type: 'textual_mention' as const,
+              scope: `paragraph:${paragraph.number}`,
+              direction: 'case_to_provision',
+              methodology: `Official case-text citation linking Article ${provisionReference.article} directly to instrument ${provisionReference.interpretedCelex} in a numbered paragraph`,
+              paragraph: paragraph.number,
+              source_anchor: paragraph.source_anchor
+            }))
+          : interpretedCelex
+            ? [
+                {
+                  field: 'case-law_interpretes_resource_legal',
+                  value: `Instrument ${interpretedCelex}; this metadata does not establish a specific-article interpretation.`,
+                  evidence_type: 'authoritative_classification' as const,
+                  scope: 'instrument',
+                  direction: 'case_to_instrument',
+                  source_predicate: 'cdm:case-law_interpretes_resource_legal',
+                  methodology: 'Authoritative CELLAR instrument-level classification'
+                }
+              ]
+            : [])
       ];
       return compact({
         case_number: caseNumber ?? work.celex ?? 'unknown',
@@ -870,8 +896,9 @@ export class LegalResearchService {
         match_evidence: evidence.length ? evidence : undefined,
         provenance: cellarProvenance(
           work,
-          'https://publications.europa.eu/webapi/rdf/sparql',
-          lang.iso2
+          provisionEvidence?.sourceUrl ?? 'https://publications.europa.eu/webapi/rdf/sparql',
+          lang.iso2,
+          provisionEvidence?.evidence
         )
       });
     });

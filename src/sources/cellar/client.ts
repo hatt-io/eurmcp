@@ -212,8 +212,10 @@ export class CellarClient {
 
   async getXhtmlItem(workUri: string, language: string): Promise<CellarExpressionItem> {
     const items = await this.findExpressions(workUri, language);
-    const xhtml = items.find((item) => item.format.toLowerCase() === 'xhtml');
-    if (!xhtml) {
+    const html =
+      items.find((item) => item.format.toLowerCase() === 'xhtml') ??
+      items.find((item) => item.format.toLowerCase() === 'html');
+    if (!html) {
       if (items.length === 0) {
         throw new EuLawError(
           'LANGUAGE_NOT_AVAILABLE',
@@ -226,7 +228,7 @@ export class CellarClient {
       }
       throw new EuLawError(
         'UPSTREAM_FORMAT_CHANGED',
-        'CELLAR expression has no XHTML manifestation',
+        'CELLAR expression has no HTML manifestation',
         {
           cellar_uri: workUri,
           language,
@@ -234,7 +236,7 @@ export class CellarClient {
         }
       );
     }
-    return xhtml;
+    return html;
   }
 
   async downloadXhtml(
@@ -248,8 +250,8 @@ export class CellarClient {
       ttlSeconds
     });
     const text = payload.text();
-    if (!text.includes('<html') || !text.includes('</html>')) {
-      throw new EuLawError('UPSTREAM_FORMAT_CHANGED', 'CELLAR XHTML item lacks an HTML root', {
+    if (!/<html\b/i.test(text) || !/<\/html>/i.test(text)) {
+      throw new EuLawError('UPSTREAM_FORMAT_CHANGED', 'CELLAR HTML item lacks an HTML root', {
         source_url: payload.url
       });
     }

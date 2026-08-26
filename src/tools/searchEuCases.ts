@@ -18,7 +18,7 @@ export function registerSearchEuCases(server: McpServer, service: LegalResearchS
     {
       title: 'Search EU case law',
       description:
-        'Search authoritative CELLAR case-law metadata. query is an AND-of-tokens match over official case titles. provision and interpreted_celex use instrument-level CELLAR classification; they do not establish article-level relevance.',
+        'Search authoritative EU case law. query is an AND-of-tokens match over official case titles. provision verifies a direct article-to-instrument citation in official numbered case paragraphs and returns that evidence. interpreted_celex is instrument-level metadata only.',
       inputSchema: z.object({
         query: z
           .string()
@@ -43,7 +43,7 @@ export function registerSearchEuCases(server: McpServer, service: LegalResearchS
           .string()
           .max(300)
           .describe(
-            'Provision text containing a recognized instrument, such as "Article 82 GDPR"; filters at instrument level only'
+            'One article and instrument, such as "Article 82 GDPR"; returned cases must directly link that article to that instrument in an official numbered paragraph'
           )
           .optional(),
         date_from: dateSchema.optional(),
