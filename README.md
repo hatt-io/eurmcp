@@ -2,6 +2,8 @@
 
 `eu-law-mcp` is a read-only MCP server for deterministic retrieval of authoritative EU legal material. It returns source text, exact structural identifiers, normalized metadata, and provenance. It is a legal-source and legal-research server, not a legal chatbot. It never supplies legal conclusions or reconstructs missing text.
 
+[Read the documentation](https://hatt-io.github.io/eurmcp/)
+
 ## Status and design
 
 The server uses TypeScript, Node.js 20+, ESM, Zod 4, the split MCP TypeScript SDK v2 packages, and stdio transport. Network retrieval, source parsing, identifier resolution, legal normalization, caching, and MCP registration are separate modules.

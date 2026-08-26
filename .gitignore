@@ -5,3 +5,5 @@ coverage/
 codex-tmp-*
 .DS_Store
 *.log
+eurmcp/.vitepress/cache/
+eurmcp/.vitepress/dist/
