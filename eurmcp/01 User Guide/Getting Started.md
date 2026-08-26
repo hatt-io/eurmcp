@@ -23,7 +23,8 @@ Use eu-law-mcp when an MCP client needs exact, source-grounded EU legislation, p
 ## Install
 
 ```bash
-cd .
+git clone https://github.com/hatt-io/eurmcp.git eu-law-mcp
+cd eu-law-mcp
 npm ci
 npm run build
 ```

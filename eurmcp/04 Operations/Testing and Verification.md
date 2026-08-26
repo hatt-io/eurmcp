@@ -53,7 +53,7 @@ Starts `dist/index.js` through the MCP v2 stdio client, discovers all 16 tools, 
 ## Inspector
 
 ```bash
-npx @modelcontextprotocol/inspector --cli node ./dist/index.js --method tools/list
+npx @modelcontextprotocol/inspector --cli node dist/index.js --method tools/list
 ```
 
 ## Release verification

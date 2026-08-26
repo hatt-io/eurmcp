@@ -13,47 +13,14 @@ tags:
 Build the server before configuring a client:
 
 ```bash
-cd .
 npm ci
 npm run build
 ```
 
-## Codex
+Configure the MCP client to start the server from the cloned repository root:
 
 ```bash
-codex mcp add eu-law -- node ./dist/index.js
-```
-
-Equivalent `~/.codex/config.toml`:
-
-```toml
-[mcp_servers.eu-law]
-command = "node"
-args = ["./dist/index.js"]
-cwd = "."
-startup_timeout_sec = 20
-tool_timeout_sec = 120
-```
-
-## Claude Code
-
-```bash
-claude mcp add --transport stdio --scope project eu-law -- node ./dist/index.js
-```
-
-Equivalent project `.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "eu-law": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["./dist/index.js"],
-      "cwd": "."
-    }
-  }
-}
+node dist/index.js
 ```
 
 ## MCP Inspector
@@ -61,13 +28,13 @@ Equivalent project `.mcp.json`:
 Inspector v2 requires Node.js 22.19 or newer.
 
 ```bash
-npx @modelcontextprotocol/inspector node ./dist/index.js
+npx @modelcontextprotocol/inspector node dist/index.js
 ```
 
 CLI discovery:
 
 ```bash
-npx @modelcontextprotocol/inspector --cli node ./dist/index.js --method tools/list
+npx @modelcontextprotocol/inspector --cli node dist/index.js --method tools/list
 ```
 
 ## Troubleshooting

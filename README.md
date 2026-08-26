@@ -193,48 +193,10 @@ The server exposes no write tool, shell, filesystem browser, arbitrary fetch, or
 
 ## Client setup
 
-Build first with `npm ci && npm run build`. Replace the path below if the repository is elsewhere.
-
-### Codex
-
-CLI:
+Build first with `npm ci && npm run build`. Configure your MCP client to run this command with the cloned repository as its working directory:
 
 ```bash
-codex mcp add eu-law -- node ./dist/index.js
-```
-
-Equivalent `~/.codex/config.toml`:
-
-```toml
-[mcp_servers.eu-law]
-command = "node"
-args = ["./dist/index.js"]
-cwd = "."
-startup_timeout_sec = 20
-tool_timeout_sec = 120
-```
-
-### Claude Code
-
-Project-scoped CLI configuration:
-
-```bash
-claude mcp add --transport stdio --scope project eu-law -- node ./dist/index.js
-```
-
-Equivalent `.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "eu-law": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["./dist/index.js"],
-      "cwd": "."
-    }
-  }
-}
+node dist/index.js
 ```
 
 ### MCP Inspector
@@ -242,13 +204,13 @@ Equivalent `.mcp.json`:
 Inspector v2 currently requires Node.js 22.19 or newer even though the server itself supports Node.js 20+.
 
 ```bash
-npx @modelcontextprotocol/inspector node ./dist/index.js
+npx @modelcontextprotocol/inspector node dist/index.js
 ```
 
 CLI discovery check:
 
 ```bash
-npx @modelcontextprotocol/inspector --cli node ./dist/index.js --method tools/list
+npx @modelcontextprotocol/inspector --cli node dist/index.js --method tools/list
 ```
 
 ## Testing
