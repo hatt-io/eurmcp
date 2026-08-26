@@ -22,9 +22,6 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "docs:dev": "vitepress dev eurmcp",
-    "docs:build": "vitepress build eurmcp",
-    "docs:preview": "vitepress preview eurmcp",
     "test": "vitest run --exclude tests/integration/live.test.ts",
     "test:unit": "vitest run tests/unit",
     "test:fixtures": "vitest run tests/fixtures.test.ts",
@@ -48,7 +45,6 @@
     "tsx": "4.20.6",
     "typescript": "6.0.3",
     "typescript-eslint": "8.67.0",
-    "vitepress": "^1.6.4",
     "vitest": "4.1.11"
   }
 }

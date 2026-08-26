@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#123a72" />
+    <title>eu-law-mcp documentation</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css" />
+  </head>
+  <body>
+    <div id="app">Loading…</div>
+    <script>
+      window.$docsify = {
+        name: 'eu-law-mcp',
+        repo: 'hatt-io/eurmcp',
+        basePath: 'eurmcp/',
+        homepage: 'Home.md',
+        auto2top: true,
+        maxLevel: 3,
+        subMaxLevel: 2,
+        plugins: [
+          function (hook) {
+            hook.beforeEach(function (markdown) {
+              return markdown.replace(/\[\[([^\]]+)\]\]/g, function (_, raw) {
+                const parts = raw.split('|');
+                const target = parts[0].trim();
+                const label = (parts[1] || target.split('/').pop()).trim().replace(/\.base$/i, '');
+                const href = /\.(?:md|base)(?:#|$)/i.test(target) ? target : target + '.md';
+                return '[' + label + '](' + href + ')';
+              });
+            });
+          }
+        ]
+      };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>
+  </body>
+</html>
