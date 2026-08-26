@@ -1,8 +1,14 @@
+import { readdirSync } from 'node:fs';
+import { dirname, join, relative, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitepress';
+import type { DefaultTheme } from 'vitepress';
 import type MarkdownIt from 'markdown-it';
 import type { StateCore, StateInline } from 'markdown-it';
 
 const base = '/eurmcp/';
+const vaultRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
+const naturalOrder = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 
 const baseViews = new Map([
   ['Tool Catalog.base', '02 Reference/MCP Tools'],
@@ -10,6 +16,44 @@ const baseViews = new Map([
   ['Improvement Specs.base', '06 Roadmap/Best-in-Class Specification'],
   ['06 Roadmap/Improvement Specs.base', '06 Roadmap/Best-in-Class Specification']
 ]);
+
+function navigationLabel(name: string): string {
+  return name.replace(/\.md$/i, '').replace(/^\d+\s+/, '');
+}
+
+function vaultItems(directory: string): DefaultTheme.SidebarItem[] {
+  const entries = readdirSync(directory, { withFileTypes: true })
+    .filter((entry) => !entry.name.startsWith('.'))
+    .filter((entry) => entry.isDirectory() || entry.name.endsWith('.md'))
+    .sort((left, right) => {
+      if (left.isDirectory() !== right.isDirectory()) return left.isDirectory() ? 1 : -1;
+      return naturalOrder.compare(left.name, right.name);
+    });
+
+  return entries.map((entry) => {
+    const absolutePath = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      return {
+        text: navigationLabel(entry.name),
+        collapsed: directory === vaultRoot ? entry.name !== '01 User Guide' : true,
+        items: vaultItems(absolutePath)
+      };
+    }
+
+    const vaultPath = relative(vaultRoot, absolutePath).split(sep).join('/');
+    return {
+      text: navigationLabel(entry.name),
+      link: `/${vaultPath.replace(/\.md$/i, '')}`
+    };
+  });
+}
+
+function vaultSidebar(): DefaultTheme.SidebarItem[] {
+  return [
+    { text: 'Overview', link: '/' },
+    ...vaultItems(vaultRoot).filter((item) => item.link !== '/Home')
+  ];
+}
 
 function headingAnchor(heading: string): string {
   return heading
@@ -116,114 +160,7 @@ export default defineConfig({
       { text: 'Architecture', link: '/03 Internals/Architecture' },
       { text: 'Roadmap', link: '/06 Roadmap/Roadmap' }
     ],
-    sidebar: [
-      {
-        text: 'Start',
-        items: [
-          { text: 'Overview', link: '/' },
-          { text: 'Getting Started', link: '/01 User Guide/Getting Started' },
-          { text: 'Client Setup', link: '/01 User Guide/Client Setup' }
-        ]
-      },
-      {
-        text: 'Reference',
-        collapsed: false,
-        items: [
-          { text: 'MCP Tools', link: '/02 Reference/MCP Tools' },
-          { text: 'Function Index', link: '/02 Reference/Function Index' },
-          { text: 'Configuration', link: '/02 Reference/Configuration' },
-          {
-            text: 'Identifiers and Languages',
-            link: '/02 Reference/Identifiers and Languages'
-          },
-          {
-            text: 'Tool details',
-            collapsed: true,
-            items: [
-              { text: 'search_eu_law', link: '/02 Reference/Tools/search_eu_law' },
-              { text: 'get_eu_document', link: '/02 Reference/Tools/get_eu_document' },
-              { text: 'get_article', link: '/02 Reference/Tools/get_article' },
-              { text: 'get_recitals', link: '/02 Reference/Tools/get_recitals' },
-              {
-                text: 'compare_document_versions',
-                link: '/02 Reference/Tools/compare_document_versions'
-              },
-              { text: 'search_eu_cases', link: '/02 Reference/Tools/search_eu_cases' },
-              { text: 'get_eu_case', link: '/02 Reference/Tools/get_eu_case' },
-              {
-                text: 'get_case_paragraphs',
-                link: '/02 Reference/Tools/get_case_paragraphs'
-              },
-              { text: 'find_cases_citing', link: '/02 Reference/Tools/find_cases_citing' },
-              {
-                text: 'search_edpb_documents',
-                link: '/02 Reference/Tools/search_edpb_documents'
-              },
-              { text: 'get_edpb_document', link: '/02 Reference/Tools/get_edpb_document' },
-              {
-                text: 'search_edps_documents',
-                link: '/02 Reference/Tools/search_edps_documents'
-              }
-            ]
-          }
-        ]
-      },
-      {
-        text: 'Internals',
-        collapsed: true,
-        items: [
-          { text: 'Architecture', link: '/03 Internals/Architecture' },
-          { text: 'Source Adapters', link: '/03 Internals/Source Adapters' },
-          { text: 'Data Contracts', link: '/03 Internals/Data Contracts' },
-          {
-            text: 'CELLAR Predicate Registry',
-            link: '/03 Internals/CELLAR Predicate Registry'
-          }
-        ]
-      },
-      {
-        text: 'Operations',
-        collapsed: true,
-        items: [
-          { text: 'Security and Caching', link: '/04 Operations/Security and Caching' },
-          {
-            text: 'Testing and Verification',
-            link: '/04 Operations/Testing and Verification'
-          }
-        ]
-      },
-      {
-        text: 'Development',
-        collapsed: true,
-        items: [
-          { text: 'Contributing', link: '/05 Development/Contributing' },
-          { text: 'Release Checklist', link: '/05 Development/Release Checklist' }
-        ]
-      },
-      {
-        text: 'Roadmap',
-        collapsed: true,
-        items: [
-          { text: 'Roadmap', link: '/06 Roadmap/Roadmap' },
-          {
-            text: 'Competitive Benchmark',
-            link: '/06 Roadmap/Competitive Benchmark'
-          },
-          {
-            text: 'Best-in-Class Specification',
-            link: '/06 Roadmap/Best-in-Class Specification'
-          }
-        ]
-      },
-      {
-        text: 'Templates',
-        collapsed: true,
-        items: [
-          { text: 'Verification Record', link: '/Templates/Verification Record' },
-          { text: 'Source Adapter Review', link: '/Templates/Source Adapter Review' }
-        ]
-      }
-    ],
+    sidebar: vaultSidebar(),
     search: {
       provider: 'local'
     },
