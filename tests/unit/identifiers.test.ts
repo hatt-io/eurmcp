@@ -18,6 +18,7 @@ describe('deterministic identifiers', () => {
       celex: '32016R0679',
       source: 'formal_citation'
     });
+    expect(() => parseIdentifier('Regulation (EU) 2016/99999')).toThrow(EuLawError);
   });
 
   it('normalizes ELI, ECLI, case number, and cross-resolves case CELEX', () => {
@@ -28,6 +29,11 @@ describe('deterministic identifiers', () => {
     expect(normalizeCaseNumber('C – 0300 / 2021')).toBe('C-300/21');
     expect(caseNumberToCelex('C-300/21')).toBe('62021CJ0300');
     expect(celexToCaseNumber('62021CJ0300')).toBe('C-300/21');
+    expect(celexToCaseNumber('62021CO0300')).toBe('C-300/21');
+    expect(parseIdentifier('62021CC0300')).toMatchObject({
+      kind: 'case',
+      caseNumber: 'C-300/21'
+    });
   });
 
   it('uses only explicit aliases', () => {

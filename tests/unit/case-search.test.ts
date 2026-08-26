@@ -26,6 +26,21 @@ describe('case search filters', () => {
     expect(searchCaseLawMock).not.toHaveBeenCalled();
   });
 
+  it('reports malformed formal instruments as invalid provision arguments', async () => {
+    const { service, searchCaseLawMock } = createCaseSearchService();
+
+    await expect(
+      service.searchEuCases({
+        provision: 'Article 82 of Regulation (EU) 2016/99999',
+        language: 'en'
+      })
+    ).rejects.toMatchObject<Partial<EuLawError>>({
+      code: 'INVALID_ARGUMENT',
+      context: { argument: 'provision' }
+    });
+    expect(searchCaseLawMock).not.toHaveBeenCalled();
+  });
+
   it('resolves maintained aliases in provision filters', async () => {
     const { service, searchCaseLawMock } = createCaseSearchService();
 

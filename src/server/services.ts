@@ -135,8 +135,12 @@ function courtFromCelex(celex: string): string {
 function extractInstrumentFromProvision(provision: string): string {
   const match = /(?:Regulation|Directive|Decision)\s*(?:\(EU\))?\s*\d{4}\/\d+/i.exec(provision);
   if (match) {
-    const parsed = parseIdentifier(match[0]);
-    if (parsed.kind === 'legislation' && parsed.celex) return parsed.celex;
+    try {
+      const parsed = parseIdentifier(match[0]);
+      if (parsed.kind === 'legislation' && parsed.celex) return parsed.celex;
+    } catch {
+      // Report every unusable provision through the argument-specific error below.
+    }
   }
 
   const normalized = provision.normalize('NFKC').toUpperCase();
