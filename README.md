@@ -43,7 +43,7 @@ The public EDPS website currently blocks reliable non-browser retrieval. `search
 Requirements: Node.js 20 or newer and npm 11.18 or newer.
 
 ```bash
-git clone <repository-url> eu-law-mcp
+git clone https://github.com/hatt-io/eurmcp.git eu-law-mcp
 cd eu-law-mcp
 npm ci
 npm run build
