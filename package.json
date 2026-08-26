@@ -1,0 +1,50 @@
+{
+  "name": "eu-law-mcp",
+  "version": "0.1.0",
+  "description": "Source-grounded MCP server for authoritative EU law and case law",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "eu-law-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run --exclude tests/integration/live.test.ts",
+    "test:unit": "vitest run tests/unit",
+    "test:fixtures": "vitest run tests/fixtures.test.ts",
+    "test:live": "EU_LAW_LIVE_TESTS=1 vitest run tests/integration/live.test.ts --testTimeout=120000",
+    "test:all": "npm run test && npm run test:live",
+    "smoke:mcp": "node scripts/mcp-smoke.mjs",
+    "verify": "npm run build && npm run lint && npm run format:check && npm run test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.0.0",
+    "linkedom": "0.18.13",
+    "unpdf": "1.8.1",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@modelcontextprotocol/client": "2.0.0",
+    "@types/node": "24.10.0",
+    "eslint": "10.0.2",
+    "prettier": "3.9.0",
+    "tsx": "4.20.6",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.67.0",
+    "vitest": "4.1.11"
+  }
+}

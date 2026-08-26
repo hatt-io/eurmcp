@@ -1,0 +1,51 @@
+filters:
+  and:
+    - file.hasTag("mcp-tool")
+properties:
+  tool:
+    displayName: Tool
+  category:
+    displayName: Category
+  source:
+    displayName: Authoritative source
+  scope:
+    displayName: Scope
+  status:
+    displayName: Status
+views:
+  - type: table
+    name: All MCP tools
+    order:
+      - tool
+      - category
+      - source
+      - scope
+      - status
+      - file.name
+  - type: table
+    name: Legislation
+    filters:
+      and:
+        - category == "legislation"
+    order:
+      - tool
+      - source
+      - scope
+  - type: table
+    name: Case law
+    filters:
+      and:
+        - category == "case-law"
+    order:
+      - tool
+      - source
+      - scope
+  - type: table
+    name: Regulatory
+    filters:
+      and:
+        - category == "regulatory"
+    order:
+      - tool
+      - source
+      - scope

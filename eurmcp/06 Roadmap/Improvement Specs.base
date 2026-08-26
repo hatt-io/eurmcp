@@ -1,0 +1,67 @@
+filters:
+  and:
+    - file.hasTag("improvement-spec")
+properties:
+  spec_id:
+    displayName: Spec
+  priority:
+    displayName: Priority
+  area:
+    displayName: Area
+  status:
+    displayName: Status
+  milestone:
+    displayName: Milestone
+  effort:
+    displayName: Effort
+views:
+  - type: table
+    name: All specifications
+    order:
+      - spec_id
+      - priority
+      - area
+      - status
+      - milestone
+      - effort
+      - file.name
+  - type: table
+    name: P0 Trust
+    filters:
+      and:
+        - priority == "P0"
+    order:
+      - spec_id
+      - area
+      - status
+      - effort
+  - type: table
+    name: P1 Product
+    filters:
+      and:
+        - priority == "P1"
+    order:
+      - spec_id
+      - area
+      - status
+      - effort
+  - type: table
+    name: P2 Extensions
+    filters:
+      and:
+        - priority == "P2"
+    order:
+      - spec_id
+      - area
+      - status
+      - effort
+  - type: table
+    name: Verified
+    filters:
+      and:
+        - status == "verified"
+    order:
+      - spec_id
+      - priority
+      - area
+      - milestone

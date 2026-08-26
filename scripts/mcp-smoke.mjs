@@ -1,0 +1,91 @@
+/* global console, process */
+import assert from 'node:assert/strict';
+import { Client } from '@modelcontextprotocol/client';
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
+
+const client = new Client({ name: 'eu-law-mcp-smoke', version: '1.0.0' });
+const transport = new StdioClientTransport({
+  command: process.execPath,
+  args: ['dist/index.js'],
+  cwd: process.cwd(),
+  stderr: 'pipe',
+  maxBufferSize: 20 * 1024 * 1024
+});
+
+const stderr = [];
+transport.stderr?.on('data', (chunk) => stderr.push(String(chunk)));
+
+const calls = [
+  ['search_eu_law', { query: 'artificial intelligence', language: 'en', limit: 5 }],
+  ['get_eu_document', { identifier: 'GDPR', language: 'en', version: 'original' }],
+  ['get_article', { document: '32016R0679', article: '22', language: 'sv' }],
+  ['get_recitals', { document: 'GDPR', recitals: [71], language: 'en' }],
+  [
+    'compare_document_versions',
+    {
+      document: 'GDPR',
+      version_a: 'original',
+      version_b: 'current_consolidated',
+      language: 'en',
+      article: '22'
+    }
+  ],
+  [
+    'search_eu_cases',
+    { provision: 'Article 82 Regulation (EU) 2016/679', language: 'en', limit: 5 }
+  ],
+  ['get_eu_case', { identifier: 'ECLI:EU:C:2023:370', language: 'en' }],
+  ['get_case_paragraphs', { case: 'C-300/21', paragraphs: { from: 42, to: 44 }, language: 'sv' }],
+  ['find_cases_citing', { case: '62021CJ0300', language: 'en', limit: 3 }],
+  ['search_edpb_documents', { query: 'consent', status: 'all', limit: 5 }],
+  [
+    'get_edpb_document',
+    {
+      identifier_or_url:
+        'https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-052020-consent-under-regulation-2016679_en',
+      language: 'en'
+    }
+  ],
+  ['search_edps_documents', { query: 'artificial intelligence', limit: 5 }]
+];
+
+try {
+  await client.connect(transport);
+  const listed = await client.listTools();
+  const names = listed.tools.map((tool) => tool.name).sort();
+  assert.equal(names.length, calls.length);
+  for (const [name, argumentsValue] of calls) {
+    const result = await client.callTool({ name, arguments: argumentsValue });
+    assert.equal(
+      result.isError,
+      undefined,
+      `${name} returned an error: ${JSON.stringify(result.content)}`
+    );
+    assert.notEqual(result.structuredContent, undefined, `${name} omitted structured output`);
+    console.log(`PASS ${name}`);
+  }
+
+  const missingParagraph = await client.callTool({
+    name: 'get_case_paragraphs',
+    arguments: { case: 'C-300/21', paragraphs: [999], language: 'en' }
+  });
+  assert.equal(missingParagraph.isError, true);
+  assert.equal(missingParagraph.structuredContent.error, 'PARAGRAPH_NOT_FOUND');
+  console.log('PASS error PARAGRAPH_NOT_FOUND');
+
+  const invalidIdentifier = await client.callTool({
+    name: 'get_eu_document',
+    arguments: { identifier: 'not a legal identifier', language: 'en' }
+  });
+  assert.equal(invalidIdentifier.isError, true);
+  assert.equal(invalidIdentifier.structuredContent.error, 'INVALID_IDENTIFIER');
+  console.log('PASS error INVALID_IDENTIFIER');
+
+  assert.equal(
+    stderr.join(''),
+    '',
+    `server wrote diagnostics during successful smoke run: ${stderr.join('')}`
+  );
+} finally {
+  await client.close();
+}

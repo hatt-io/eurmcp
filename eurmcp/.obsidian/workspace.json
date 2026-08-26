@@ -1,0 +1,228 @@
+{
+  "main": {
+    "id": "e0dcf38c7fb821d3",
+    "type": "split",
+    "children": [
+      {
+        "id": "5f231b42c9f8c9d0",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "4ce0b8183e7da13d",
+            "type": "leaf",
+            "state": {
+              "type": "bases",
+              "state": {
+                "file": "06 Roadmap/Improvement Specs.base",
+                "viewName": "All specifications"
+              },
+              "icon": "lucide-table",
+              "title": "Improvement Specs"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "fa25811e8c3fcaea",
+    "type": "split",
+    "children": [
+      {
+        "id": "9fd35229251e53ed",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "6efde6ff259efe67",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "8361a1a491c7cbf7",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "6108399debfa73db",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "e0b2d31109dee603",
+    "type": "split",
+    "children": [
+      {
+        "id": "d30b11010e4a6404",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "d0f8b5bbf5853513",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "04 Operations/Security and Caching.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "063b6ad8b758613a",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "04 Operations/Security and Caching.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "00c963dc0220bda6",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "fc6b668e1d2698af",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "d26e812a79026d96",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "04 Operations/Security and Caching.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "4ce0b8183e7da13d",
+  "lastOpenFiles": [
+    "02 Reference/Tool Catalog.base",
+    "06 Roadmap/Specs/EULAW-018 Batch and Citation Export.md",
+    "06 Roadmap/Specs/EULAW-017 Optional Semantic Discovery.md",
+    "06 Roadmap/Specs/EULAW-016 Supply-Chain Assurance.md",
+    "06 Roadmap/Specs/EULAW-015 Public Quality Benchmarks.md",
+    "06 Roadmap/Specs/EULAW-014 Resilience and Source Health.md",
+    "06 Roadmap/Specs/EULAW-013 HTTP and Distribution.md",
+    "06 Roadmap/Specs/EULAW-012 Regulator Source Hardening.md",
+    "06 Roadmap/Specs/EULAW-011 Case Citation Evidence.md",
+    "06 Roadmap/Specs/EULAW-010 Context-Efficient Retrieval.md",
+    "06 Roadmap/Specs/EULAW-009 Relationship Graph and Transposition.md",
+    "06 Roadmap/Specs/EULAW-008 EuroVoc and Advanced Search.md",
+    "06 Roadmap/Specs/EULAW-007 Evidence Semantics.md",
+    "06 Roadmap/Specs/EULAW-006 Parser Conformance Corpus.md",
+    "06 Roadmap/Specs/EULAW-005 Pinpoint Anchors and Quote Verification.md",
+    "06 Roadmap/Specs/EULAW-004 Temporal Law Model.md",
+    "06 Roadmap/Specs/EULAW-003 Official Source Reconciliation.md",
+    "06 Roadmap/Specs/EULAW-002 Versioned Output Schemas.md",
+    "06 Roadmap/Specs/EULAW-001 Evidence Envelope.md",
+    "06 Roadmap/Specs",
+    "06 Roadmap/Improvement Specs.base",
+    "06 Roadmap/Roadmap.md",
+    "06 Roadmap/Best-in-Class Specification.md",
+    "06 Roadmap/Competitive Benchmark.md",
+    "06 Roadmap",
+    "Home.md",
+    "Templates/Source Adapter Review.md",
+    "Templates/Verification Record.md",
+    "05 Development/Release Checklist.md",
+    "02 Reference/Tools",
+    "Templates",
+    "05 Development",
+    "04 Operations",
+    "03 Internals",
+    "02 Reference"
+  ]
+}
