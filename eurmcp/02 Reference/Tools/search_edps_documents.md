@@ -31,10 +31,6 @@ Search official EDPS publication metadata deposited in CELLAR.
 
 Normalized title, available document type, date, CELEX, official CELLAR link, provenance, and methodology.
 
-## Coverage limitation
-
-The public EDPS site currently blocks reliable non-browser automation. This adapter does not hide that failure with brittle scraping. It queries official Publications Office records restricted to titles identifying the EDPS. Coverage can be incomplete relative to the EDPS website and the result says so.
-
 ## Implementation
 
 Registration: `src/tools/searchEdpsDocuments.ts` is represented by a dedicated camel-case registration module. Orchestration is in `src/server/services.ts`.

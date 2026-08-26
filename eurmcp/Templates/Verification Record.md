@@ -41,8 +41,6 @@ commit:
 
 ## Failures and fixes
 
-## Remaining limitations
-
 ## Approval
 
 

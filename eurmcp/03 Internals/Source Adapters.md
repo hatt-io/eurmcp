@@ -60,7 +60,7 @@ Failure controls:
 
 Files: `src/sources/edps`.
 
-Direct EDPS site automation is currently unreliable. Search uses official Publications Office CELLAR records whose titles identify the European Data Protection Supervisor. Results disclose this limited methodology and do not claim full website coverage.
+Search uses official Publications Office CELLAR records whose titles identify the European Data Protection Supervisor.
 
 ## Adding a source
 

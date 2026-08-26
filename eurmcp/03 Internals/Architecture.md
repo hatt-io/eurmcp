@@ -60,7 +60,6 @@ CELLAR follows work → expression → manifestation → item. The server resolv
 - Legal identifiers are deterministic.
 - Source numbering is never generated.
 - Consolidated text is not an amending act.
-- Search evidence does not imply interpretation.
 - Every substantive result has provenance.
 - stdout remains an MCP-only channel.
 

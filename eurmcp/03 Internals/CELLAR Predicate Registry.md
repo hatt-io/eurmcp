@@ -42,8 +42,6 @@ Predicates used by named query builders. Every addition requires official docume
 - `cdm:case-law_interpretes_resource_legal`
 - `cdm:work_cites_work`
 
-The interpretation predicate is instrument-level metadata. It does not prove interpretation of a specific article.
-
 ## Versions and relationships
 
 - `cdm:act_consolidated_consolidates_resource_legal`

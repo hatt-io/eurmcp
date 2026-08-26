@@ -37,9 +37,8 @@ tags:
 - [ ] README matches runtime behavior.
 - [ ] [[02 Reference/MCP Tools]] includes every tool.
 - [ ] [[02 Reference/Function Index]] matches exported code.
-- [ ] [[03 Internals/Source Adapters]] records parsing and limitations.
+- [ ] [[03 Internals/Source Adapters]] records parsing.
 - [ ] Client configurations are current.
-- [ ] Known limitations are explicit.
 
 ## Release record
 

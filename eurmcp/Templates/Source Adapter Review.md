@@ -42,7 +42,6 @@ tags:
 - Fixture:
 - Live test:
 - Cross-source check:
-- Known limitations:
 - Decision:
 
 

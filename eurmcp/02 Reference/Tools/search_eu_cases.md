@@ -39,10 +39,6 @@ At least one search criterion is required.
 
 Case number, name, ECLI, CELEX, court, chamber, document type, date, official links, match evidence, and provenance.
 
-## Evidence rule
-
-A provision query can use official instrument-level interpretation metadata. The result explicitly states that this does not establish interpretation of the specific numbered article. Keyword matches are never promoted to an interpretation claim.
-
 ## Implementation
 
 Registration: `src/tools/searchEuCases.ts` is represented by a dedicated camel-case registration module. Orchestration is in `src/server/services.ts`.

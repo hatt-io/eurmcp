@@ -13,8 +13,6 @@ tags:
 
 Use eu-law-mcp when an MCP client needs exact, source-grounded EU legislation, provisions, recitals, court paragraphs, citation relationships, official versions, EDPB guidance, or EDPS publication metadata.
 
-Do not use it as a legal chatbot. Search results are evidence records, not legal conclusions.
-
 ## Requirements
 
 - Node.js 20 or newer.

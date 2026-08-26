@@ -17,7 +17,7 @@ aliases:
 
 Research date: 2026-08-26.
 
-This is a capability comparison based on each project's published repository documentation and the verified behavior of eu-law-mcp. Competitor rows are documentation claims, not independent accuracy audits. A check means the project documents the capability. It does not prove extraction accuracy.
+This is a capability comparison based on each project's published repository documentation and the verified behavior of eu-law-mcp.
 
 The benchmark rewards the server's actual mission: authoritative source → exact legal material → structured metadata → provenance. Breadth alone does not win.
 
@@ -50,11 +50,11 @@ Its biggest gaps are discovery depth, temporal navigation, context-efficient ret
 
 ## Adjacent benchmark
 
-[uk-legal-mcp](https://github.com/paulieb89/uk-legal-mcp) is not an EU competitor, but it is a useful product benchmark. It documents point-in-time legislation, paragraph reads, in-document search, large-document resources, parliamentary chains, hosted HTTP, and citation parsing. eu-law-mcp should match its context-efficient workflows while retaining stricter EU-source semantics.
+[uk-legal-mcp](https://github.com/paulieb89/uk-legal-mcp) documents point-in-time legislation, paragraph reads, in-document search, large-document resources, parliamentary chains, hosted HTTP, and citation parsing.
 
 ## Capability matrix
 
-Legend: yes = implemented or documented; partial = adjacent capability; no = not documented. Competitor values remain documentation claims.
+Legend: yes = implemented or documented; partial = adjacent capability; no = not documented.
 
 | Capability | eu-law-mcp | Honeyfield | cyanheads | scimorph | mcp-eu-sparql |
 |---|---:|---:|---:|---:|---:|
@@ -87,4 +87,4 @@ Do not compete by adding every possible source or a raw query escape hatch. Win 
 
 ## Conclusion
 
-eu-law-mcp is already stronger for pinpoint EU legal retrieval. It is not yet the strongest general EU-law research MCP because competitors expose better EuroVoc search, transposition metadata, outlines, resources, pagination, HTTP access, and package distribution. The linked [[06 Roadmap/Best-in-Class Specification|Best-in-Class Specification]] closes those gaps without sacrificing the stricter source rules.
+The linked [[06 Roadmap/Best-in-Class Specification|Best-in-Class Specification]] covers EuroVoc search, transposition metadata, outlines, resources, pagination, HTTP access, and package distribution.

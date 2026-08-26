@@ -34,7 +34,7 @@ Canonical target case identifiers and citing case metadata with provenance.
 
 ## Evidence
 
-The methodology uses the authoritative CELLAR `cdm:work_cites_work` relationship. Ordinary keyword co-occurrence is never accepted as proof of citation. Result provenance records the methodology. The relationship proves citation, not the legal treatment of the cited case.
+The methodology uses the authoritative CELLAR `cdm:work_cites_work` relationship. Result provenance records the methodology.
 
 ## Implementation
 

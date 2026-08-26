@@ -13,9 +13,6 @@ aliases:
 
 Production documentation for the source-grounded EU law MCP server.
 
-> [!important] System boundary
-> This server retrieves authoritative legal material. It does not provide legal advice, invent missing text, translate legal text, or infer legal conclusions.
-
 ## Start here
 
 - [[01 User Guide/Getting Started|Getting Started]]

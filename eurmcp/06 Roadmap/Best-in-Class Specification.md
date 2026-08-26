@@ -17,7 +17,7 @@ aliases:
 
 Make eu-law-mcp the most trustworthy open-source MCP for EU legal-source research.
 
-"Best" means the highest verifiable accuracy for exact EU legal material, followed by complete temporal metadata, evidence-aware research, useful discovery, and production-grade delivery. It does not mean the largest unofficial corpus or the most tools.
+"Best" means the highest verifiable accuracy for exact EU legal material, followed by complete temporal metadata, evidence-aware research, useful discovery, and production-grade delivery.
 
 ## Non-negotiable rules
 
