@@ -9,7 +9,7 @@ tags:
 
 # MCP Tools
 
-All tools are read-only and return MCP structured output. Substantive results include provenance.
+All 16 tools are read-only and return MCP structured output. Every success and structured error includes `api_version: "1.0"`. Substantive results include an evidence-bearing provenance envelope.
 
 ## Legislation
 
@@ -18,6 +18,9 @@ All tools are read-only and return MCP structured output. Substantive results in
 - [[02 Reference/Tools/get_article]]
 - [[02 Reference/Tools/get_recitals]]
 - [[02 Reference/Tools/compare_document_versions]]
+- [[02 Reference/Tools/list_document_versions]]
+- [[02 Reference/Tools/get_document_timeline]]
+- [[02 Reference/Tools/get_provision_at_date]]
 
 ## Case law
 
@@ -32,6 +35,10 @@ All tools are read-only and return MCP structured output. Substantive results in
 - [[02 Reference/Tools/get_edpb_document]]
 - [[02 Reference/Tools/search_edps_documents]]
 
+## Evidence verification
+
+- [[02 Reference/Tools/verify_legal_quote]]
+
 ## Shared argument rules
 
 - Languages accept normalized official EU language codes. English and Swedish live retrieval are tested.
@@ -40,5 +47,7 @@ All tools are read-only and return MCP structured output. Substantive results in
 - Paragraph and recital selections accept a positive integer array or a `from` and `to` object.
 - Versions accept `original`, `current_consolidated`, or an official consolidation date.
 - Missing material returns a structured error and never a neighboring provision.
+- Language availability is reported without fallback or substitution.
+- Quote verification accepts only an evidence ID and anchor ID returned by this server; it never accepts URLs, paths, or selectors.
 
 Query the interactive [[Tool Catalog.base|Tool Catalog]] for a property-driven view.

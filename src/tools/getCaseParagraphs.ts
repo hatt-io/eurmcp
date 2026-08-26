@@ -4,11 +4,11 @@ import type { LegalResearchService } from '../server/services.js';
 import {
   failure,
   languageSchema,
-  looseOutputSchema,
   numberSelectionSchema,
   readOnlyAnnotations,
   success
 } from './shared.js';
+import { getCaseParagraphsOutputSchema } from './outputSchemas.js';
 
 export function registerGetCaseParagraphs(server: McpServer, service: LegalResearchService): void {
   server.registerTool(
@@ -22,7 +22,7 @@ export function registerGetCaseParagraphs(server: McpServer, service: LegalResea
         paragraphs: numberSelectionSchema,
         language: languageSchema
       }),
-      outputSchema: looseOutputSchema,
+      outputSchema: getCaseParagraphsOutputSchema,
       annotations: readOnlyAnnotations
     },
     async (input) => {

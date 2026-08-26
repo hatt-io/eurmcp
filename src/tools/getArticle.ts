@@ -1,14 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import type { LegalResearchService } from '../server/services.js';
-import {
-  failure,
-  languageSchema,
-  looseOutputSchema,
-  readOnlyAnnotations,
-  success,
-  versionSchema
-} from './shared.js';
+import { failure, languageSchema, readOnlyAnnotations, success, versionSchema } from './shared.js';
+import { getArticleOutputSchema } from './outputSchemas.js';
 
 export function registerGetArticle(server: McpServer, service: LegalResearchService): void {
   server.registerTool(
@@ -23,7 +17,7 @@ export function registerGetArticle(server: McpServer, service: LegalResearchServ
         language: languageSchema,
         version: versionSchema
       }),
-      outputSchema: looseOutputSchema,
+      outputSchema: getArticleOutputSchema,
       annotations: readOnlyAnnotations
     },
     async (input) => {

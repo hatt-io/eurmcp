@@ -1,4 +1,5 @@
 import { DOMParser } from 'linkedom';
+import { sha256 } from '../../evidence/normalization.js';
 import { EuLawError } from '../../errors/errors.js';
 import { normalizeArticleNumber } from '../../legal/provisions.js';
 import type {
@@ -6,25 +7,104 @@ import type {
   LegalParagraph,
   LegalPoint,
   ParsedArticle,
-  ParsedRecital
+  ParsedRecital,
+  SourceAnchor
 } from '../../types.js';
 
-type ParsedLegislation = {
+export const CELLAR_XHTML_PARSER = Object.freeze({
+  name: 'cellar-official-xhtml',
+  version: '2.0.0'
+});
+
+export type ParserContext = {
+  evidenceId: string;
+  parserName?: string;
+  parserVersion?: string;
+};
+
+export type ParsedLegislation = {
   title: string;
   text: string;
   articles: ParsedArticle[];
   recitals: ParsedRecital[];
   detectedLanguage?: string;
+  anchors: { anchor: SourceAnchor; text: string }[];
 };
 
-type ParsedCase = {
+export type ParsedCase = {
   title?: string;
   caseNumber?: string;
   ecli?: string;
   dateText?: string;
   paragraphs: CaseParagraph[];
   operativePart?: string;
+  anchors: { anchor: SourceAnchor; text: string }[];
 };
+
+function structuralPath(element: Element): string {
+  const id = element.getAttribute('id');
+  if (id) return `#${id}`;
+  const parts: string[] = [];
+  let current: Element | null = element;
+  while (current && current.tagName.toLowerCase() !== 'html') {
+    const tag = current.tagName.toLowerCase();
+    const siblings = current.parentElement
+      ? Array.from(current.parentElement.children).filter(
+          (item) => item.tagName === current!.tagName
+        )
+      : [current];
+    parts.unshift(`${tag}:nth-of-type(${siblings.indexOf(current) + 1})`);
+    current = current.parentElement;
+  }
+  return parts.join(' > ');
+}
+
+function sourceAnchor(
+  context: ParserContext | undefined,
+  kind: string,
+  location: string,
+  element: Element,
+  text: string
+): SourceAnchor | undefined {
+  if (!context) return undefined;
+  const parserVersion = context.parserVersion ?? CELLAR_XHTML_PARSER.version;
+  const sourceElementId = element.getAttribute('id') || undefined;
+  return {
+    anchor_id: sha256(`${context.evidenceId}\0${parserVersion}\0${location}`),
+    kind,
+    location,
+    ...(sourceElementId ? { source_element_id: sourceElementId } : {}),
+    structural_path: structuralPath(element),
+    text_sha256: sha256(normalized(text))
+  };
+}
+
+function collectPointAnchors(
+  point: LegalPoint,
+  result: { anchor: SourceAnchor; text: string }[]
+): void {
+  if (point.source_anchor) result.push({ anchor: point.source_anchor, text: point.text });
+  for (const child of point.points ?? []) collectPointAnchors(child, result);
+}
+
+function collectArticleAnchors(
+  article: ParsedArticle,
+  result: { anchor: SourceAnchor; text: string }[]
+): void {
+  if (article.source_anchor) {
+    result.push({
+      anchor: article.source_anchor,
+      text: [article.heading, ...article.paragraphs.map((paragraph) => paragraph.text)]
+        .filter(Boolean)
+        .join(' ')
+    });
+  }
+  for (const paragraph of article.paragraphs) {
+    if (paragraph.source_anchor)
+      result.push({ anchor: paragraph.source_anchor, text: paragraph.text });
+    for (const point of paragraph.points ?? []) collectPointAnchors(point, result);
+  }
+}
 
 function parseDocument(source: string): Document {
   const document = new DOMParser().parseFromString(source, 'text/html');
@@ -87,7 +167,11 @@ function nestedDirectTables(element: Element): Element[] {
   return result;
 }
 
-function parsePointTable(table: Element): LegalPoint | undefined {
+function parsePointTable(
+  table: Element,
+  context?: ParserContext,
+  location = 'point'
+): LegalPoint | undefined {
   const row = table.querySelector('tr');
   if (!row) return undefined;
   const cells = directChildren(row, 'td');
@@ -98,14 +182,20 @@ function parsePointTable(table: Element): LegalPoint | undefined {
   const text = textWithoutNotes(contentCell, true);
   if (!label || !text) return undefined;
   const nested = nestedDirectTables(contentCell)
-    .map(parsePointTable)
+    .map((element, index) => parsePointTable(element, context, `${location}(${index + 1})`))
     .filter((point): point is LegalPoint => Boolean(point));
   const point: LegalPoint = { label, text };
+  const anchor = sourceAnchor(context, 'article_point', `${location}(${label})`, table, text);
+  if (anchor) point.source_anchor = anchor;
   if (nested.length) point.points = nested;
   return point;
 }
 
-function parseGridPoint(grid: Element): LegalPoint | undefined {
+function parseGridPoint(
+  grid: Element,
+  context?: ParserContext,
+  location = 'point'
+): LegalPoint | undefined {
   const columns = directChildren(grid);
   const labelColumn = columns.find((child) => child.classList.contains('grid-list-column-1'));
   const contentColumn = columns.find((child) => child.classList.contains('grid-list-column-2'));
@@ -124,14 +214,20 @@ function parseGridPoint(grid: Element): LegalPoint | undefined {
       }
       return true;
     })
-    .map(parseGridPoint)
+    .map((element, index) => parseGridPoint(element, context, `${location}(${index + 1})`))
     .filter((point): point is LegalPoint => Boolean(point));
   const point: LegalPoint = { label, text };
+  const anchor = sourceAnchor(context, 'article_point', `${location}(${label})`, grid, text);
+  if (anchor) point.source_anchor = anchor;
   if (nested.length) point.points = nested;
   return point;
 }
 
-function parseArticleElement(root: Element, requested?: string): ParsedArticle {
+function parseArticleElement(
+  root: Element,
+  requested?: string,
+  context?: ParserContext
+): ParsedArticle {
   const id = root.getAttribute('id') ?? '';
   const article = normalizeArticleNumber(id.replace(/^art_/, ''));
   if (requested && article !== requested) {
@@ -156,9 +252,17 @@ function parseArticleElement(root: Element, requested?: string): ParsedArticle {
       const number = visibleNumber ?? numberFromId;
       const text = raw.replace(/^\d+[a-z]?\.(?:\s|$)/i, '').trim();
       const points = directChildren(child, 'table')
-        .map(parsePointTable)
+        .map((element) => parsePointTable(element, context, `Article ${article}(${number})`))
         .filter((point): point is LegalPoint => Boolean(point));
       const paragraph: LegalParagraph = { number, text };
+      const anchor = sourceAnchor(
+        context,
+        'article_paragraph',
+        `Article ${article}(${number})`,
+        child,
+        text
+      );
+      if (anchor) paragraph.source_anchor = anchor;
       if (points.length) paragraph.points = points;
       paragraphs.push(paragraph);
     } else if (child.matches('div.norm') && !child.classList.contains('inline-element')) {
@@ -189,14 +293,33 @@ function parseArticleElement(root: Element, requested?: string): ParsedArticle {
           }
           return true;
         })
-        .map(parseGridPoint)
+        .map((element) => parseGridPoint(element, context, `Article ${article}(${number})`))
         .filter((point): point is LegalPoint => Boolean(point));
       const paragraph: LegalParagraph = { number, text: textWithoutNotes(content, true) };
+      const anchor = sourceAnchor(
+        context,
+        'article_paragraph',
+        `Article ${article}(${number})`,
+        child,
+        paragraph.text
+      );
+      if (anchor) paragraph.source_anchor = anchor;
       if (points.length) paragraph.points = points;
       paragraphs.push(paragraph);
     } else if (child.matches('p.oj-normal, p.norm')) {
       const text = textWithoutNotes(child);
-      if (text) paragraphs.push({ text });
+      if (text) {
+        const paragraph: LegalParagraph = { text };
+        const anchor = sourceAnchor(
+          context,
+          'article_paragraph',
+          `Article ${article}[${paragraphs.length + 1}]`,
+          child,
+          text
+        );
+        if (anchor) paragraph.source_anchor = anchor;
+        paragraphs.push(paragraph);
+      }
     }
   }
   if (!paragraphs.length) {
@@ -207,10 +330,15 @@ function parseArticleElement(root: Element, requested?: string): ParsedArticle {
   const result: ParsedArticle = { article, paragraphs };
   const heading = headingElement ? textWithoutNotes(headingElement) : '';
   if (heading) result.heading = heading;
+  const articleText = [heading, ...paragraphs.map((paragraph) => paragraph.text)]
+    .filter(Boolean)
+    .join(' ');
+  const anchor = sourceAnchor(context, 'article', `Article ${article}`, root, articleText);
+  if (anchor) result.source_anchor = anchor;
   return result;
 }
 
-export function parseLegislationXhtml(source: string): ParsedLegislation {
+export function parseLegislationXhtml(source: string, context?: ParserContext): ParsedLegislation {
   const document = parseDocument(source);
   const titleRoot = document.querySelector('.eli-main-title');
   const articleRoots = Array.from(
@@ -230,7 +358,7 @@ export function parseLegislationXhtml(source: string): ParsedLegislation {
       }
     );
   }
-  const articles = articleRoots.map((root) => parseArticleElement(root));
+  const articles = articleRoots.map((root) => parseArticleElement(root, undefined, context));
   const articleNumbers = new Set(articles.map((article) => article.article));
   if (articleNumbers.size !== articles.length) {
     throw new EuLawError('UPSTREAM_FORMAT_CHANGED', 'Duplicate article identifiers in source');
@@ -242,29 +370,59 @@ export function parseLegislationXhtml(source: string): ParsedLegislation {
     if (!Number.isInteger(number) || !textCell) {
       throw new EuLawError('UPSTREAM_FORMAT_CHANGED', 'Malformed recital structure');
     }
-    return { number, text: textWithoutNotes(textCell) };
+    const text = textWithoutNotes(textCell);
+    const recital: ParsedRecital = { number, text };
+    const anchor = sourceAnchor(context, 'recital', `Recital ${number}`, root, text);
+    if (anchor) recital.source_anchor = anchor;
+    return recital;
   });
+  const anchors: { anchor: SourceAnchor; text: string }[] = [];
+  for (const article of articles) collectArticleAnchors(article, anchors);
+  for (const recital of recitals) {
+    if (recital.source_anchor) anchors.push({ anchor: recital.source_anchor, text: recital.text });
+  }
   const result: ParsedLegislation = {
     title: textWithoutNotes(titleRoot),
     text: textWithoutNotes(document.body),
     articles,
-    recitals
+    recitals,
+    anchors
   };
-  const detectedLanguage = document.querySelector('.oj-hd-lg')?.textContent?.trim().toLowerCase();
+  const detectedLanguages = [
+    ...new Set(
+      Array.from(document.querySelectorAll('.oj-hd-lg'))
+        .map((element) => element.textContent?.trim().toLowerCase())
+        .filter((value): value is string => Boolean(value))
+    )
+  ];
+  if (detectedLanguages.length > 1) {
+    throw new EuLawError('UPSTREAM_FORMAT_CHANGED', 'Mixed source-language markers detected', {
+      detected_languages: detectedLanguages
+    });
+  }
+  const detectedLanguage = detectedLanguages[0];
   if (detectedLanguage) result.detectedLanguage = detectedLanguage;
   return result;
 }
 
-export function extractArticle(source: string, articleInput: string): ParsedArticle {
+export function extractArticle(
+  source: string,
+  articleInput: string,
+  context?: ParserContext
+): ParsedArticle {
   const article = normalizeArticleNumber(articleInput);
   const document = parseDocument(source);
   const root = document.getElementById(`art_${article}`);
   if (!root)
     throw new EuLawError('ARTICLE_NOT_FOUND', `Article ${article} was not found`, { article });
-  return parseArticleElement(root, article);
+  return parseArticleElement(root, article, context);
 }
 
-export function extractRecitals(source: string, requested: readonly number[]): ParsedRecital[] {
+export function extractRecitals(
+  source: string,
+  requested: readonly number[],
+  context?: ParserContext
+): ParsedRecital[] {
   const document = parseDocument(source);
   return requested.map((number) => {
     const root = document.getElementById(`rct_${number}`);
@@ -282,11 +440,15 @@ export function extractRecitals(source: string, requested: readonly number[]): P
         }
       );
     }
-    return { number, text: textWithoutNotes(textCell) };
+    const text = textWithoutNotes(textCell);
+    const recital: ParsedRecital = { number, text };
+    const anchor = sourceAnchor(context, 'recital', `Recital ${number}`, root, text);
+    if (anchor) recital.source_anchor = anchor;
+    return recital;
   });
 }
 
-export function parseCaseXhtml(source: string): ParsedCase {
+export function parseCaseXhtml(source: string, context?: ParserContext): ParsedCase {
   const document = parseDocument(source);
   const countElements = Array.from(document.querySelectorAll('p.coj-count[id^="point"]'));
   if (!countElements.length) {
@@ -329,7 +491,16 @@ export function parseCaseXhtml(source: string): ParsedCase {
         paragraph: idNumber
       });
     }
-    return { number: idNumber, text };
+    const paragraph: CaseParagraph = { number: idNumber, text };
+    const anchor = sourceAnchor(
+      context,
+      'case_paragraph',
+      `Paragraph ${idNumber}`,
+      countElement,
+      text
+    );
+    if (anchor) paragraph.source_anchor = anchor;
+    return paragraph;
   });
   const bodyText = textWithoutNotes(document.body);
   const caseMatch = /\b([CTF])[-‑–— ](\d+)\/(\d{2,4})\b/.exec(bodyText);
@@ -338,7 +509,12 @@ export function parseCaseXhtml(source: string): ParsedCase {
   const grounds = Array.from(document.querySelectorAll('p')).find((element) =>
     /^on those grounds$/i.test(normalized(element.textContent ?? ''))
   );
-  const result: ParsedCase = { paragraphs };
+  const result: ParsedCase = {
+    paragraphs,
+    anchors: paragraphs.flatMap((paragraph) =>
+      paragraph.source_anchor ? [{ anchor: paragraph.source_anchor, text: paragraph.text }] : []
+    )
+  };
   if (title) result.title = normalized(title);
   if (caseMatch?.[1] && caseMatch[2] && caseMatch[3]) {
     result.caseNumber = `${caseMatch[1]}-${Number.parseInt(caseMatch[2], 10)}/${caseMatch[3].slice(-2)}`;
@@ -366,9 +542,10 @@ export function parseCaseXhtml(source: string): ParsedCase {
 
 export function extractCaseParagraphs(
   source: string,
-  requested: readonly number[]
+  requested: readonly number[],
+  context?: ParserContext
 ): CaseParagraph[] {
-  const parsed = parseCaseXhtml(source);
+  const parsed = parseCaseXhtml(source, context);
   const byNumber = new Map(parsed.paragraphs.map((paragraph) => [paragraph.number, paragraph]));
   const available = parsed.paragraphs.map((paragraph) => paragraph.number);
   return requested.map((number) => {

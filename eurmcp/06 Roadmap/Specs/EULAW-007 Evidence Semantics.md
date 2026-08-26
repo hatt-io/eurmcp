@@ -4,7 +4,7 @@ spec_id: EULAW-007
 type: improvement-spec
 priority: P0
 area: legal-evidence
-status: proposed
+status: verified
 milestone: 1
 effort: L
 tags:
@@ -20,18 +20,18 @@ The API MUST distinguish metadata relationships, textual mentions, formal citati
 
 ## Acceptance criteria
 
-- [ ] Define evidence_type values metadata_relation, textual_mention, formal_citation, operative_reference, and authoritative_classification.
-- [ ] Do not expose interprets, applies, follows, distinguishes, or overrules unless an authoritative field or explicit, deterministic source rule supports it.
-- [ ] Return exact paragraph evidence for text-derived citations.
-- [ ] Name the extraction methodology and confidence class without probabilistic legal conclusions.
-- [ ] Rename ambiguous search fields so provision keyword matches say mentions.
+- [x] Define evidence_type values metadata_relation, textual_mention, formal_citation, operative_reference, and authoritative_classification.
+- [x] Do not expose interprets, applies, follows, distinguishes, or overrules unless an authoritative field or explicit, deterministic source rule supports it.
+- [x] Return exact paragraph evidence for text-derived citations.
+- [x] Name the extraction methodology and confidence class without probabilistic legal conclusions.
+- [x] Rename ambiguous search fields so provision keyword matches say mentions.
 
 ## Verification
 
-- [ ] An Article 82 keyword match is textual_mention, never interpretation.
-- [ ] Document-level CELLAR citation metadata is metadata_relation.
-- [ ] A case-name co-occurrence without a citation pattern is excluded.
-- [ ] Every relationship includes direction and provenance.
+- [x] An Article 82 keyword match is textual_mention, never interpretation.
+- [x] Document-level CELLAR citation metadata is metadata_relation.
+- [x] A case-name co-occurrence without a citation pattern is excluded.
+- [x] Every relationship includes direction and provenance.
 
 ## Governing constraints
 
@@ -39,4 +39,4 @@ This specification inherits the anti-hallucination, strict-language, official-so
 
 ## Status
 
-Proposed. Change to specified only after public input/output contracts and authoritative source paths are documented.
+Verified in eu-law-mcp 0.2.0 after all release gates passed.

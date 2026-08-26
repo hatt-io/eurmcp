@@ -1,14 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import type { LegalResearchService } from '../server/services.js';
-import {
-  failure,
-  languageSchema,
-  looseOutputSchema,
-  readOnlyAnnotations,
-  success,
-  versionSchema
-} from './shared.js';
+import { failure, languageSchema, readOnlyAnnotations, success, versionSchema } from './shared.js';
+import { getEuDocumentOutputSchema } from './outputSchemas.js';
 
 export function registerGetEuDocument(server: McpServer, service: LegalResearchService): void {
   server.registerTool(
@@ -22,7 +16,7 @@ export function registerGetEuDocument(server: McpServer, service: LegalResearchS
         language: languageSchema,
         version: versionSchema
       }),
-      outputSchema: looseOutputSchema,
+      outputSchema: getEuDocumentOutputSchema,
       annotations: readOnlyAnnotations
     },
     async (input) => {

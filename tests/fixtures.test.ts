@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { EuLawError } from '../src/errors/errors.js';
+import { normalizeLegalText, sha256 } from '../src/evidence/normalization.js';
+import { officialEuLanguageCodes } from '../src/legal/languages.js';
 import {
   extractArticle,
   extractCaseParagraphs,
@@ -57,6 +59,24 @@ describe('authoritative response fixtures', () => {
     expect(() => parseCaseXhtml(source)).toThrowError(EuLawError);
   });
 
+  it('changes raw hashes on one byte but keeps normalized hashes stable for whitespace', async () => {
+    const source = await fixture('gdpr-en.xhtml');
+    expect(sha256(`${source}x`)).not.toBe(sha256(source));
+    const parsed = parseLegislationXhtml(source);
+    const whitespaceChanged = source.replace(/>\s+</g, '>\n   <');
+    expect(sha256(normalizeLegalText(parseLegislationXhtml(whitespaceChanged).text))).toBe(
+      sha256(normalizeLegalText(parsed.text))
+    );
+  });
+
+  it('rejects mixed source-language markers', async () => {
+    const source = (await fixture('gdpr-en.xhtml')).replace(
+      '<p class="oj-hd-lg">EN</p>',
+      '<p class="oj-hd-lg">EN</p><p class="oj-hd-lg">SV</p>'
+    );
+    expect(() => parseLegislationXhtml(source)).toThrowError(EuLawError);
+  });
+
   it('parses isolated official EDPB HTML and detects missing language', async () => {
     const search = parseEdpbSearchPage(
       await fixture('edpb-search.html'),
@@ -76,5 +96,36 @@ describe('authoritative response fixtures', () => {
         'en'
       )
     ).toThrowError(EuLawError);
+  });
+
+  it('keeps the authoritative fixture manifest complete and hash-verified', async () => {
+    const manifest = JSON.parse(await fixture('corpus-manifest.json')) as {
+      licence: string;
+      retrieved_at: string;
+      fixtures: { file: string; source_url: string; fixture_sha256: string }[];
+    };
+    expect(manifest.licence).toContain('2011/833/EU');
+    expect(manifest.retrieved_at).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    for (const item of manifest.fixtures) {
+      expect(item.source_url).toMatch(/^https:\/\//);
+      expect(sha256(await fixture(item.file))).toBe(item.fixture_sha256);
+    }
+  });
+
+  it('records Article 22 and recital 71 official fragments for all 24 languages', async () => {
+    const fragments = JSON.parse(await fixture('gdpr-24-language-fragments.json')) as {
+      language: string;
+      article_22: string;
+      recital_71: string;
+      item: string;
+      response_sha256: string;
+    }[];
+    expect(fragments.map((item) => item.language)).toEqual(officialEuLanguageCodes);
+    for (const fragment of fragments) {
+      expect(fragment.article_22.length).toBeGreaterThan(15);
+      expect(fragment.recital_71.length).toBeGreaterThan(15);
+      expect(fragment.item).toMatch(/DOC_1$/);
+      expect(fragment.response_sha256).toMatch(/^[a-f0-9]{64}$/);
+    }
   });
 });

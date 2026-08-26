@@ -4,7 +4,7 @@ spec_id: EULAW-002
 type: improvement-spec
 priority: P0
 area: api-contracts
-status: proposed
+status: verified
 milestone: 1
 effort: M
 tags:
@@ -20,18 +20,18 @@ Every tool MUST publish a precise MCP outputSchema and return structuredContent 
 
 ## Acceptance criteria
 
-- [ ] Replace permissive record schemas with named strict Zod schemas and generated JSON Schema.
-- [ ] Add api_version to successful results and structured errors.
-- [ ] Reject unknown legal identity fields at adapter boundaries.
-- [ ] Document additive versus breaking changes and support one prior minor contract during migration.
-- [ ] Snapshot all input and output schemas and fail CI on undocumented drift.
+- [x] Replace permissive record schemas with named strict Zod schemas and generated JSON Schema.
+- [x] Add api_version to successful results and structured errors.
+- [x] Reject unknown legal identity fields at adapter boundaries.
+- [x] Document additive versus breaking changes and support one prior minor contract during migration.
+- [x] Snapshot all input and output schemas and fail CI on undocumented drift.
 
 ## Verification
 
-- [ ] MCP Inspector validates every output schema.
-- [ ] Property-based invalid payloads are rejected.
-- [ ] Tool text and structuredContent represent the same object.
-- [ ] Schema snapshots match the documented contract version.
+- [x] MCP Inspector validates every output schema.
+- [x] Property-based invalid payloads are rejected.
+- [x] Tool text and structuredContent represent the same object.
+- [x] Schema snapshots match the documented contract version.
 
 ## Governing constraints
 
@@ -39,4 +39,4 @@ This specification inherits the anti-hallucination, strict-language, official-so
 
 ## Status
 
-Proposed. Change to specified only after public input/output contracts and authoritative source paths are documented.
+Verified in eu-law-mcp 0.2.0 after all release gates passed.

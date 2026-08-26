@@ -7,6 +7,29 @@ const live = process.env.EU_LAW_LIVE_TESTS === '1' ? describe : describe.skip;
 const service = createService({ cache: new FileCache('.eu-law-cache/live-tests') });
 
 live.sequential('live authoritative EU services', () => {
+  it('runs configured rotating official-language canaries', async () => {
+    const languages = (process.env.EU_LAW_CANARY_LANGUAGES ?? '')
+      .split(',')
+      .map((language) => language.trim())
+      .filter(Boolean);
+    for (const language of languages) {
+      const article = await service.getArticle({
+        document: 'GDPR',
+        article: '22',
+        language,
+        version: 'original'
+      });
+      const recital = await service.getRecitals({
+        document: 'GDPR',
+        recitals: [71],
+        language,
+        version: 'original'
+      });
+      expect(article.language).toBe(language);
+      expect(article.paragraphs.length).toBeGreaterThan(0);
+      expect(recital.recitals[0]?.number).toBe(71);
+    }
+  });
   it('retrieves mandatory GDPR articles and recital in official languages', async () => {
     for (const article of ['5', '6', '22', '25', '82']) {
       const result = await service.getArticle({
@@ -59,6 +82,71 @@ live.sequential('live authoritative EU services', () => {
     expect(Array.isArray(comparison.changes)).toBe(true);
   });
 
+  it('lists the GDPR timeline and performs safe point-in-time retrieval', async () => {
+    const versions = await service.listDocumentVersions({ document: 'GDPR', language: 'en' });
+    expect(versions.versions[0]).toMatchObject({
+      type: 'original',
+      celex: '32016R0679',
+      language_available: true
+    });
+    expect(versions.versions.some((version) => version.type === 'consolidated')).toBe(true);
+    const timeline = await service.getDocumentTimeline({ document: 'GDPR', language: 'en' });
+    expect(timeline.events.some((event) => event.event_type === 'original')).toBe(true);
+    expect(timeline.events.some((event) => event.event_type === 'consolidation')).toBe(true);
+    const article = await service.getProvisionAtDate({
+      document: 'GDPR',
+      article: '22',
+      date: '2016-05-04',
+      language: 'en'
+    });
+    expect(article).toMatchObject({
+      article: '22',
+      snapshot_date: '2016-05-04',
+      legal_effect_not_inferred: true
+    });
+  });
+
+  it('verifies anchored legal quotes in English and Swedish without repair', async () => {
+    for (const language of ['en', 'sv']) {
+      const article = await service.getArticle({
+        document: 'GDPR',
+        article: '22',
+        language,
+        version: 'original'
+      });
+      const paragraph = article.paragraphs[0]!;
+      expect(article.provenance.snapshot_available).toBe(true);
+      expect(paragraph.source_anchor).toBeDefined();
+      await expect(
+        service.verifyLegalQuote({
+          evidence_id: article.provenance.evidence_id!,
+          anchor_id: paragraph.source_anchor!.anchor_id,
+          quote: paragraph.text
+        })
+      ).resolves.toMatchObject({ result: 'exact_match' });
+      await expect(
+        service.verifyLegalQuote({
+          evidence_id: article.provenance.evidence_id!,
+          anchor_id: paragraph.source_anchor!.anchor_id,
+          quote: `${paragraph.text} changed`
+        })
+      ).resolves.toMatchObject({ result: 'no_match' });
+      const recitals = await service.getRecitals({
+        document: 'GDPR',
+        recitals: [71],
+        language,
+        version: 'original'
+      });
+      await expect(
+        service.verifyLegalQuote({
+          evidence_id: recitals.provenance.evidence_id!,
+          anchor_id: recitals.recitals[0]!.source_anchor!.anchor_id,
+          quote: recitals.recitals[0]!.text
+        })
+      ).resolves.toMatchObject({ result: 'exact_match' });
+    }
+  });
+
   it('cross-resolves C-300/21 identifiers and retrieves exact numbered paragraphs', async () => {
     const identifiers = ['C-300/21', '62021CJ0300', 'ECLI:EU:C:2023:370'];
     const documents = [];
@@ -91,6 +179,31 @@ live.sequential('live authoritative EU services', () => {
       42, 43, 44, 45, 46, 47, 48, 49, 50
     ]);
     expect(range.language).toBe('sv');
+
+    const paragraph50 = await service.getCaseParagraphs({
+      case: 'C-300/21',
+      paragraphs: [50],
+      language: 'en'
+    });
+    await expect(
+      service.verifyLegalQuote({
+        evidence_id: paragraph50.provenance.evidence_id!,
+        anchor_id: paragraph50.paragraphs[0]!.source_anchor!.anchor_id,
+        quote: paragraph50.paragraphs[0]!.text
+      })
+    ).resolves.toMatchObject({ result: 'exact_match' });
+    const paragraph50Sv = await service.getCaseParagraphs({
+      case: 'C-300/21',
+      paragraphs: [50],
+      language: 'sv'
+    });
+    await expect(
+      service.verifyLegalQuote({
+        evidence_id: paragraph50Sv.provenance.evidence_id!,
+        anchor_id: paragraph50Sv.paragraphs[0]!.source_anchor!.anchor_id,
+        quote: paragraph50Sv.paragraphs[0]!.text
+      })
+    ).resolves.toMatchObject({ result: 'exact_match' });
 
     try {
       await service.getCaseParagraphs({ case: 'C-300/21', paragraphs: [999], language: 'en' });

@@ -1,14 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import type { LegalResearchService } from '../server/services.js';
-import {
-  dateSchema,
-  failure,
-  limitSchema,
-  looseOutputSchema,
-  readOnlyAnnotations,
-  success
-} from './shared.js';
+import { dateSchema, failure, limitSchema, readOnlyAnnotations, success } from './shared.js';
+import { searchEdpsDocumentsOutputSchema } from './outputSchemas.js';
 
 export function registerSearchEdpsDocuments(
   server: McpServer,
@@ -27,7 +21,7 @@ export function registerSearchEdpsDocuments(
         date_to: dateSchema.optional(),
         limit: limitSchema
       }),
-      outputSchema: looseOutputSchema,
+      outputSchema: searchEdpsDocumentsOutputSchema,
       annotations: readOnlyAnnotations
     },
     async (input) => {

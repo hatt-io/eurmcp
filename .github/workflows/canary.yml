@@ -1,0 +1,39 @@
+name: Official-source canaries
+
+on:
+  schedule:
+    - cron: '23 5 * * 2'
+    - cron: '47 5 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  weekly-six-languages:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '23 5 * * 2'
+    runs-on: ubuntu-latest
+    env:
+      EU_LAW_CANARY_LANGUAGES: en,sv,de,fr,es,pl
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run test:live
+
+  monthly-all-languages:
+    if: github.event.schedule == '47 5 1 * *'
+    runs-on: ubuntu-latest
+    env:
+      EU_LAW_CANARY_LANGUAGES: bg,es,cs,da,de,et,el,en,fr,ga,hr,it,lv,lt,hu,mt,nl,pl,pt,ro,sk,sl,fi,sv
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run test:live

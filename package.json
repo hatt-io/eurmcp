@@ -1,6 +1,6 @@
 {
   "name": "eu-law-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Source-grounded MCP server for authoritative EU law and case law",
   "type": "module",
   "license": "MIT",

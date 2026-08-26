@@ -58,6 +58,14 @@ Implementations:
 
 Cache keys contain full queries or authoritative item URIs, preserving identifier, language, version, manifestation, format, and filters.
 
+HTTP cache entries use the `cache/v2` namespace. A hit preserves the source receipt: retrieval time, selected headers, status, byte count, and raw-response SHA-256.
+
+## Evidence store
+
+Authoritative legal text, judgment XHTML, and regulator source files are stored under `EU_LAW_CACHE_DIR/evidence/v1`. Files are content-addressed by SHA-256, written atomically with mode `0600`, deduplicated, and have no automatic eviction. Raw search and SPARQL responses remain ordinary TTL cache entries.
+
+Set `EU_LAW_EVIDENCE_ENABLED=false` to disable durable snapshots. Results still include hashes and set `snapshot_available: false`; later quote verification returns `EVIDENCE_NOT_FOUND`.
+
 ## Operations
 
 Force fresh data:
@@ -70,6 +78,12 @@ Or disable cache for one run:
 
 ```bash
 EU_LAW_CACHE_ENABLED=false npm start
+```
+
+Disable durable evidence for one run:
+
+```bash
+EU_LAW_EVIDENCE_ENABLED=false npm start
 ```
 
 Do not disable upstream protections or add unofficial fallback sources to conceal an official outage.

@@ -25,7 +25,8 @@ Responsibilities:
 - Resolve XHTML manifestations and items.
 - Search legislation and case-law metadata.
 - Find consolidations, relationships, and citations.
-- Retrieve legal XHTML and judgment XHTML.
+- Build original, consolidation, corrigendum, and amending-act timelines.
+- Retrieve legal XHTML, Formex4 XML, and judgment XHTML through a strict parser registry.
 
 All raw SPARQL lives in named builders in `queries.ts`. Callers cannot supply SPARQL.
 
@@ -39,7 +40,7 @@ Provides deterministic official links for CELEX, ELI, and ECLI. Browser-facing c
 
 Files: `src/sources/curia`.
 
-Provides deterministic official case-file links. Exact numbered judgment content uses CELLAR XHTML, avoiding brittle search-result scraping.
+Provides deterministic official case-file links and best-effort public case-page metadata for cross-system reconciliation. Exact numbered judgment content uses CELLAR XHTML. Missing secondary metadata leaves a `primary_only` result rather than blocking retrieval.
 
 ## EDPB
 

@@ -15,7 +15,7 @@ tags:
 npm test
 ```
 
-Covers identifier normalization, aliases, ambiguity, language selection, validation, HTTP security, legislation structure, consolidated structure, recitals, judgment numbering, operative parts, footnote exclusion, EDPB HTML, and upstream format failures.
+Covers identifier normalization, aliases, ambiguity, language selection, strict schemas, HTTP receipts, hashing, evidence storage and permissions, anchor lookup, quote mismatch, temporal selection, reconciliation, legislation structure, XHTML/Formex4 parsing, recitals, judgment numbering, operative parts, footnote exclusion, EDPB HTML, and upstream format failures.
 
 ## Live suite
 
@@ -30,8 +30,10 @@ Live coverage:
 - GDPR recital 71.
 - Original and current official consolidated metadata.
 - Structural version comparison.
+- GDPR version timeline and point-in-time retrieval.
+- Exact anchor and quote verification for GDPR Article 22 and recital 71.
 - C-300/21 resolution through case number, CELEX, and ECLI.
-- Exact English and Swedish judgment paragraphs.
+- Exact English and Swedish judgment paragraphs, including C-300/21 paragraph 50 anchors.
 - Paragraph ranges and `PARAGRAPH_NOT_FOUND`.
 - Metadata searches for data protection, AI, and GDPR Article 82 cases.
 - Official citation relationships.
@@ -46,7 +48,7 @@ Tests are sequential and cached to respect upstream services.
 npm run smoke:mcp
 ```
 
-Starts `dist/index.js` through the MCP v2 stdio client, discovers all tools, calls every valid tool, validates structured output, checks two structured errors, and ensures server diagnostics do not pollute stdout.
+Starts `dist/index.js` through the MCP v2 stdio client, discovers all 16 tools, calls every valid tool, validates structured output, checks quote mismatch and both evidence errors, checks representative existing errors, and ensures server diagnostics do not pollute stdout.
 
 ## Inspector
 

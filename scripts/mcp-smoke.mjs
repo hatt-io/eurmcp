@@ -46,14 +46,18 @@ const calls = [
       language: 'en'
     }
   ],
-  ['search_edps_documents', { query: 'artificial intelligence', limit: 5 }]
+  ['search_edps_documents', { query: 'artificial intelligence', limit: 5 }],
+  ['list_document_versions', { document: 'GDPR', language: 'en' }],
+  ['get_document_timeline', { document: 'GDPR', language: 'en' }],
+  ['get_provision_at_date', { document: 'GDPR', article: '22', date: '2016-05-04', language: 'en' }]
 ];
 
 try {
   await client.connect(transport);
   const listed = await client.listTools();
   const names = listed.tools.map((tool) => tool.name).sort();
-  assert.equal(names.length, calls.length);
+  assert.equal(names.length, calls.length + 1);
+  const results = new Map();
   for (const [name, argumentsValue] of calls) {
     const result = await client.callTool({ name, arguments: argumentsValue });
     assert.equal(
@@ -62,8 +66,48 @@ try {
       `${name} returned an error: ${JSON.stringify(result.content)}`
     );
     assert.notEqual(result.structuredContent, undefined, `${name} omitted structured output`);
+    assert.equal(result.structuredContent.api_version, '1.0');
+    results.set(name, result.structuredContent);
     console.log(`PASS ${name}`);
   }
+
+  const article = results.get('get_article');
+  const quoteAnchor = article.paragraphs[0].source_anchor;
+  const quoteMismatch = await client.callTool({
+    name: 'verify_legal_quote',
+    arguments: {
+      evidence_id: article.provenance.evidence_id,
+      anchor_id: quoteAnchor.anchor_id,
+      quote: `${article.paragraphs[0].text} changed`
+    }
+  });
+  assert.equal(quoteMismatch.isError, undefined);
+  assert.equal(quoteMismatch.structuredContent.result, 'no_match');
+  console.log('PASS verify_legal_quote no_match');
+
+  const missingEvidence = await client.callTool({
+    name: 'verify_legal_quote',
+    arguments: {
+      evidence_id: `sha256:${'0'.repeat(64)}`,
+      anchor_id: '0'.repeat(64),
+      quote: 'text'
+    }
+  });
+  assert.equal(missingEvidence.isError, true);
+  assert.equal(missingEvidence.structuredContent.error, 'EVIDENCE_NOT_FOUND');
+  console.log('PASS error EVIDENCE_NOT_FOUND');
+
+  const missingAnchor = await client.callTool({
+    name: 'verify_legal_quote',
+    arguments: {
+      evidence_id: article.provenance.evidence_id,
+      anchor_id: '0'.repeat(64),
+      quote: 'text'
+    }
+  });
+  assert.equal(missingAnchor.isError, true);
+  assert.equal(missingAnchor.structuredContent.error, 'SOURCE_ANCHOR_NOT_FOUND');
+  console.log('PASS error SOURCE_ANCHOR_NOT_FOUND');
 
   const missingParagraph = await client.callTool({
     name: 'get_case_paragraphs',

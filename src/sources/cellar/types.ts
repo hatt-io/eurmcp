@@ -26,6 +26,17 @@ export type CellarWork = {
   resourceTypeUri?: string;
   languages: string[];
   chamberUri?: string;
+  sourceReceipt?: {
+    sourceUrl: string;
+    retrievedAt: string;
+    mediaType: string;
+    responseSha256: string;
+    httpStatus: number;
+    byteCount: number;
+    etag?: string;
+    lastModified?: string;
+    cacheStatus: 'hit' | 'miss';
+  };
 };
 
 export type CellarExpressionItem = {
@@ -34,6 +45,7 @@ export type CellarExpressionItem = {
   language: string;
   format: string;
   itemUri: string;
+  manifestationUri: string;
 };
 
 export type CellarConsolidation = {

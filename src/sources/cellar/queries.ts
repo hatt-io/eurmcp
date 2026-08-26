@@ -60,7 +60,7 @@ export function findWorkByEcliAnyLanguage(ecli: string): string {
 
 export function findExpressions(workUri: string, language?: string): string {
   return `${prefixes}
-SELECT DISTINCT ?work ?expression ?langCode (STR(?formatValue) AS ?format) ?item WHERE {
+SELECT DISTINCT ?work ?expression ?langCode (STR(?formatValue) AS ?format) ?manifestation ?item WHERE {
   VALUES ?work { ${sparqlIri(workUri)} }
   ?expression cdm:expression_belongs_to_work ?work ; cdm:expression_uses_language ?lang .
   ?lang dc:identifier ?langCode .
@@ -176,7 +176,7 @@ ORDER BY DESC(?date) ?celex`;
 
 export function findAmendingActs(workUri: string): string {
   return `${prefixes}
-SELECT DISTINCT ?related ?relationship ?celex WHERE {
+SELECT DISTINCT ?related ?relationship ?celex ?date (STR(?predicate) AS ?sourcePredicate) WHERE {
   VALUES ?work { ${sparqlIri(workUri)} }
   {
     ?work ?predicate ?related .
@@ -198,6 +198,7 @@ SELECT DISTINCT ?related ?relationship ?celex WHERE {
     }
   }
   OPTIONAL { ?related cdm:resource_legal_id_celex ?celex }
+  OPTIONAL { ?related cdm:work_date_document ?date }
 }
 ORDER BY ?relationship ?celex`;
 }

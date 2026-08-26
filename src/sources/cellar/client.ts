@@ -1,6 +1,6 @@
 import { cacheTtl, type Cache } from '../../cache/cache.js';
 import { EuLawError } from '../../errors/errors.js';
-import type { HttpClient } from '../../http/client.js';
+import type { HttpClient, HttpPayload } from '../../http/client.js';
 import type { DocumentRelationship } from '../../types.js';
 import {
   findAmendingActs,
@@ -27,6 +27,28 @@ import type {
 } from './types.js';
 
 const ENDPOINT = 'https://publications.europa.eu/webapi/rdf/sparql';
+
+type QueryReceipt = CellarWork['sourceReceipt'];
+type CachedSparql = { bindings: SparqlBinding[]; receipt: NonNullable<QueryReceipt> };
+const bindingReceipts = new WeakMap<SparqlBinding, NonNullable<QueryReceipt>>();
+
+function receiptFromPayload(payload: HttpPayload): NonNullable<QueryReceipt> {
+  return {
+    sourceUrl: payload.url,
+    retrievedAt: payload.retrievedAt,
+    mediaType: payload.contentType,
+    responseSha256: payload.rawSha256,
+    httpStatus: payload.status,
+    byteCount: payload.byteCount,
+    ...(payload.headers.etag ? { etag: payload.headers.etag } : {}),
+    ...(payload.headers['last-modified'] ? { lastModified: payload.headers['last-modified'] } : {}),
+    cacheStatus: payload.cacheStatus
+  };
+}
+
+function setReceipts(bindings: SparqlBinding[], receipt: NonNullable<QueryReceipt>): void {
+  for (const binding of bindings) bindingReceipts.set(binding, receipt);
+}
 
 function optional(binding: SparqlBinding, name: string): string | undefined {
   return binding[name]?.value || undefined;
@@ -62,6 +84,8 @@ function workFromBinding(binding: SparqlBinding): CellarWork {
     if (value !== undefined) Object.assign(work, { [key]: value });
   const inForce = parseBoolean(optional(binding, 'inForce'));
   if (inForce !== undefined) work.inForce = inForce;
+  const receipt = bindingReceipts.get(binding);
+  if (receipt) work.sourceReceipt = receipt;
   return work;
 }
 
@@ -75,9 +99,13 @@ export class CellarClient {
   }
 
   async sparql(query: string, ttlSeconds = cacheTtl.search): Promise<SparqlBinding[]> {
-    const key = `cellar:sparql:${query}`;
-    const cached = await this.#cache.get<SparqlBinding[]>(key);
-    if (cached) return cached;
+    const key = `cellar:v2:sparql:${query}`;
+    const cached = await this.#cache.get<CachedSparql>(key);
+    if (cached) {
+      const receipt = { ...cached.receipt, cacheStatus: 'hit' as const };
+      setReceipts(cached.bindings, receipt);
+      return cached.bindings;
+    }
     const payload = await this.#http.request(ENDPOINT, {
       method: 'POST',
       body: new URLSearchParams({ query }).toString(),
@@ -103,7 +131,9 @@ export class CellarClient {
         source_url: payload.url
       });
     }
-    await this.#cache.set(key, decoded.results.bindings, ttlSeconds);
+    const receipt = receiptFromPayload(payload);
+    setReceipts(decoded.results.bindings, receipt);
+    await this.#cache.set(key, { bindings: decoded.results.bindings, receipt }, ttlSeconds);
     return decoded.results.bindings;
   }
 
@@ -120,6 +150,13 @@ export class CellarClient {
     );
   }
 
+  async findWorkByCelexAnyLanguage(celex: string): Promise<CellarWork | undefined> {
+    const first = (
+      await this.sparql(findWorkByCelexAnyLanguage(celex), cacheTtl.historicalDocument)
+    )[0];
+    return first ? workFromBinding(first) : undefined;
+  }
+
   async findWorkByEli(eli: string, language = 'ENG'): Promise<CellarWork[]> {
     return (await this.sparql(findWorkByEli(eli, language), cacheTtl.historicalDocument)).map(
       workFromBinding
@@ -129,6 +166,12 @@ export class CellarClient {
   async hasWorkByEli(eli: string): Promise<boolean> {
     return Boolean(
       (await this.sparql(findWorkByEliAnyLanguage(eli), cacheTtl.historicalDocument))[0]
+    );
+  }
+
+  async findWorkByEliAnyLanguage(eli: string): Promise<CellarWork[]> {
+    return (await this.sparql(findWorkByEliAnyLanguage(eli), cacheTtl.historicalDocument)).map(
+      workFromBinding
     );
   }
 
@@ -152,10 +195,18 @@ export class CellarClient {
       const lang = optional(row, 'langCode');
       const format = optional(row, 'format');
       const item = optional(row, 'item');
-      if (!work || !expression || !lang || !format || !item) {
+      const manifestation = optional(row, 'manifestation');
+      if (!work || !expression || !lang || !format || !item || !manifestation) {
         throw new EuLawError('UPSTREAM_FORMAT_CHANGED', 'CELLAR manifestation row was incomplete');
       }
-      return { workUri: work, expressionUri: expression, language: lang, format, itemUri: item };
+      return {
+        workUri: work,
+        expressionUri: expression,
+        language: lang,
+        format,
+        manifestationUri: manifestation,
+        itemUri: item
+      };
     });
   }
 
@@ -189,7 +240,7 @@ export class CellarClient {
   async downloadXhtml(
     item: CellarExpressionItem,
     ttlSeconds: number
-  ): Promise<{ text: string; url: string }> {
+  ): Promise<HttpPayload & { item: CellarExpressionItem }> {
     const url = item.itemUri.replace(/^http:/, 'https:');
     const payload = await this.#http.get(url, {
       accept: ['application/xhtml+xml', 'text/html', 'application/xml'],
@@ -202,7 +253,7 @@ export class CellarClient {
         source_url: payload.url
       });
     }
-    return { text, url: payload.url };
+    return Object.assign(payload, { item });
   }
 
   async searchLegislation(input: LegislationSearchQuery): Promise<CellarWork[]> {
@@ -236,6 +287,10 @@ export class CellarClient {
       const value: DocumentRelationship = { type: relationship, cellar_uri: related };
       const celex = optional(row, 'celex');
       if (celex) value.celex = celex;
+      const date = optional(row, 'date');
+      if (date) value.date = date;
+      const sourcePredicate = optional(row, 'sourcePredicate');
+      if (sourcePredicate) value.source_predicate = sourcePredicate;
       return [value];
     });
   }

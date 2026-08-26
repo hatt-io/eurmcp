@@ -43,3 +43,8 @@ tags:
 ## Release record
 
 Create a note from [[Templates/Verification Record]] and link it from the relevant release or change note.
+
+
+## Verification records
+
+- [[05 Development/Verification Records/eu-law-mcp 0.2.0]]

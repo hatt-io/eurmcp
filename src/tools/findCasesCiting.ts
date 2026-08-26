@@ -6,10 +6,10 @@ import {
   failure,
   languageSchema,
   limitSchema,
-  looseOutputSchema,
   readOnlyAnnotations,
   success
 } from './shared.js';
+import { findCasesCitingOutputSchema } from './outputSchemas.js';
 
 export function registerFindCasesCiting(server: McpServer, service: LegalResearchService): void {
   server.registerTool(
@@ -26,7 +26,7 @@ export function registerFindCasesCiting(server: McpServer, service: LegalResearc
         language: languageSchema,
         limit: limitSchema
       }),
-      outputSchema: looseOutputSchema,
+      outputSchema: findCasesCitingOutputSchema,
       annotations: readOnlyAnnotations
     },
     async (input) => {

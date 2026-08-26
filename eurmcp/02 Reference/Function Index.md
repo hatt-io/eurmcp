@@ -65,6 +65,7 @@ Files: `src/legal`.
 | `searchCaseLaw` | Authoritative court metadata search |
 | `findConsolidations` | Official consolidation works and dates |
 | `findAmendingActs` | Metadata-backed relationships |
+| `findCorrigenda` | Official corrigendum relationships and dates |
 | `findCitations` | Inbound `work_cites_work` relationships |
 | `searchEdpsPublications` | Limited official EDPS metadata |
 
@@ -83,6 +84,8 @@ SPARQL safety helpers:
 | Export | Responsibility |
 | --- | --- |
 | `parseLegislationXhtml` | Parse official legislation title, articles, recitals, language |
+| `parseFormex4` | Parse supported official Formex4 article and recital structures |
+| `parseOfficialDocument` | Dispatch through the strict official parser registry |
 | `extractArticle` | Extract one exact article |
 | `extractRecitals` | Extract requested exact recitals |
 | `parseCaseXhtml` | Parse identifiers, date, numbered paragraphs, operative part |
@@ -101,6 +104,10 @@ SPARQL safety helpers:
 | `HttpClient` | Restricted official-source HTTP client |
 | `FileCache` | Atomic local cache |
 | `NullCache` | Disabled-cache implementation |
+| `FileEvidenceStore` | Content-addressed durable source evidence |
+| `NullEvidenceStore` | Hash-only behavior when durable evidence is disabled |
+| `normalizeLegalText` | Versioned NFC and whitespace normalization |
+| `verifyStoredQuote` | Exact or normalized comparison against one stored anchor |
 | `cacheTtl` | Material-specific TTL policy |
 | `EuLawError` | Typed API error |
 | `asEuLawError` | Normalize unknown failure |
@@ -123,5 +130,9 @@ Each tool has one dedicated `register...` export:
 - `registerSearchEdpbDocuments`
 - `registerGetEdpbDocument`
 - `registerSearchEdpsDocuments`
+- `registerListDocumentVersions`
+- `registerGetDocumentTimeline`
+- `registerGetProvisionAtDate`
+- `registerVerifyLegalQuote`
 
 See [[02 Reference/MCP Tools]] for external contracts.

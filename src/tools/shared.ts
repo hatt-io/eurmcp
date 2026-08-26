@@ -14,17 +14,18 @@ export const numberSelectionSchema = z.union([
   z.array(z.number().int().positive()).min(1).max(100),
   z.object({ from: z.number().int().positive(), to: z.number().int().positive() })
 ]);
-export const looseOutputSchema = z.looseObject({});
+export const API_VERSION = '1.0' as const;
 
 export function success(value: Record<string, unknown>) {
+  const versioned = { api_version: API_VERSION, ...value };
   return {
-    content: [{ type: 'text' as const, text: JSON.stringify(value) }],
-    structuredContent: value
+    content: [{ type: 'text' as const, text: JSON.stringify(versioned) }],
+    structuredContent: versioned
   };
 }
 
 export function failure(error: unknown) {
-  const value = asEuLawError(error).toJSON();
+  const value = { api_version: API_VERSION, ...asEuLawError(error).toJSON() };
   return {
     content: [{ type: 'text' as const, text: JSON.stringify(value) }],
     structuredContent: value,

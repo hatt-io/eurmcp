@@ -30,16 +30,16 @@ Production documentation for the source-grounded EU law MCP server.
 
 ## Core guarantee
 
-Authoritative source → exact legal material → structured metadata → provenance.
+Authoritative source → exact legal material → durable evidence and anchors → strict structured output.
 
 ## Current implementation
 
 - Runtime: Node.js 20+, TypeScript, ESM.
 - Protocol: MCP TypeScript SDK v2 over stdio.
 - Validation: Zod 4.
-- Core source: Publications Office CELLAR SPARQL and XHTML dissemination.
+- Core source: Publications Office CELLAR SPARQL, XHTML, and Formex4 dissemination.
 - Regulatory guidance: official EDPB website and PDFs.
-- Cache: local filesystem, no external service.
+- Cache and evidence: local content-addressed filesystem, no external service.
 - Security: read-only tools and authoritative-domain allowlist.
 
 ## Quick commands

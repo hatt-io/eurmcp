@@ -1,14 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import type { LegalResearchService } from '../server/services.js';
-import {
-  dateSchema,
-  failure,
-  languageSchema,
-  looseOutputSchema,
-  readOnlyAnnotations,
-  success
-} from './shared.js';
+import { dateSchema, failure, languageSchema, readOnlyAnnotations, success } from './shared.js';
+import { compareDocumentVersionsOutputSchema } from './outputSchemas.js';
 
 const requiredVersion = z.union([
   z.literal('original'),
@@ -33,7 +27,7 @@ export function registerCompareDocumentVersions(
         language: languageSchema,
         article: z.string().max(40).optional()
       }),
-      outputSchema: looseOutputSchema,
+      outputSchema: compareDocumentVersionsOutputSchema,
       annotations: readOnlyAnnotations
     },
     async (input) => {

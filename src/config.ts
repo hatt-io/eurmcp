@@ -4,6 +4,7 @@ import { EuLawError } from './errors/errors.js';
 export type Config = {
   cacheDir: string;
   cacheEnabled: boolean;
+  evidenceEnabled: boolean;
   httpTimeoutMs: number;
   logLevel: 'silent' | 'error' | 'warn' | 'info' | 'debug';
 };
@@ -40,6 +41,7 @@ export function loadConfig(): Config {
   return {
     cacheDir: resolve(process.env.EU_LAW_CACHE_DIR ?? '.eu-law-cache'),
     cacheEnabled: booleanEnv('EU_LAW_CACHE_ENABLED', true),
+    evidenceEnabled: booleanEnv('EU_LAW_EVIDENCE_ENABLED', true),
     httpTimeoutMs: numberEnv('EU_LAW_HTTP_TIMEOUT_MS', 30_000, 1_000, 120_000),
     logLevel: logLevel as Config['logLevel']
   };

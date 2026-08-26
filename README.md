@@ -1,6 +1,6 @@
 # eu-law-mcp
 
-`eu-law-mcp` is a read-only MCP server for deterministic retrieval of authoritative EU legal material. It returns source text, exact structural identifiers, normalized metadata, and provenance. It is a legal-source and legal-research server, not a legal chatbot. It never supplies legal conclusions or reconstructs missing text.
+`eu-law-mcp` 0.2.0 is a read-only MCP server for deterministic retrieval of authoritative EU legal material. It returns source text, exact structural identifiers, versioned schemas, durable evidence, source anchors, normalized metadata, and provenance. It is a legal-source and legal-research server, not a legal chatbot. It never supplies legal conclusions or reconstructs missing text.
 
 [Read the documentation](https://hatt-io.github.io/eurmcp/)
 
@@ -16,7 +16,8 @@ validated MCP input
   -> authoritative source adapter
   -> source-structure parser
   -> normalized structured result
-  -> provenance
+  -> content-addressed evidence and anchors
+  -> strict versioned result and provenance
 ```
 
 No general web search engine, commercial database, unofficial legal database, caller-supplied URL proxy, caller-supplied SPARQL, machine translation, or LLM-generated source text is used.
@@ -27,7 +28,7 @@ No general web search engine, commercial database, unofficial legal database, ca
 | -------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | Publications Office CELLAR | Official SPARQL endpoint and REST item dissemination      | Core legislation and case metadata, WEMI resolution, official XHTML, versions, relationships, citations, EDPS publication metadata |
 | EUR-Lex                    | Deterministic official CELEX/ELI/ECLI links               | Stable provenance and user-facing document links; exact text comes from CELLAR manifestations                                      |
-| CURIA                      | Deterministic official case links                         | User-facing case links; exact numbered judgment text comes from CELLAR manifestations                                              |
+| CURIA                      | Public official case pages and deterministic links        | Field-level case reconciliation; exact numbered judgment text comes from CELLAR manifestations                                     |
 | EDPB                       | Official Drupal catalogue/document HTML and official PDFs | Guidance search, language-specific files, exact PDF text                                                                           |
 | EDPS                       | Official records published through CELLAR                 | Limited EDPS metadata search                                                                                                       |
 
@@ -66,16 +67,17 @@ npm run format
 
 No keys, accounts, database, Redis, Docker, or cloud service are required.
 
-| Variable                 | Default         | Meaning                                       |
-| ------------------------ | --------------- | --------------------------------------------- |
-| `EU_LAW_CACHE_DIR`       | `.eu-law-cache` | Filesystem cache directory                    |
-| `EU_LAW_CACHE_ENABLED`   | `true`          | Enable local cache                            |
-| `EU_LAW_HTTP_TIMEOUT_MS` | `30000`         | Per-request timeout, 1000–120000 ms           |
-| `EU_LAW_LOG_LEVEL`       | `warn`          | `silent`, `error`, `warn`, `info`, or `debug` |
+| Variable                  | Default         | Meaning                                       |
+| ------------------------- | --------------- | --------------------------------------------- |
+| `EU_LAW_CACHE_DIR`        | `.eu-law-cache` | Filesystem cache directory                    |
+| `EU_LAW_CACHE_ENABLED`    | `true`          | Enable local cache                            |
+| `EU_LAW_EVIDENCE_ENABLED` | `true`          | Persist authoritative source evidence         |
+| `EU_LAW_HTTP_TIMEOUT_MS`  | `30000`         | Per-request timeout, 1000–120000 ms           |
+| `EU_LAW_LOG_LEVEL`        | `warn`          | `silent`, `error`, `warn`, `info`, or `debug` |
 
 ## MCP tools
 
-All tools are read-only, return `structuredContent`, and include provenance on substantive results.
+All tools are read-only, return `structuredContent`, and publish strict output schemas. Successes and structured errors include `api_version: "1.0"`. Substantive results include provenance.
 
 | Tool                        | Required arguments                   | Optional arguments                                                                                         |
 | --------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
@@ -91,6 +93,10 @@ All tools are read-only, return `structuredContent`, and include provenance on s
 | `search_edpb_documents`     | `query`                              | `document_type`, `status`, dates, `limit`                                                                  |
 | `get_edpb_document`         | `identifier_or_url`                  | `language`                                                                                                 |
 | `search_edps_documents`     | `query`                              | `document_type`, dates, `limit`                                                                            |
+| `list_document_versions`    | `document`                           | `language`                                                                                                 |
+| `get_document_timeline`     | `document`                           | `language`                                                                                                 |
+| `get_provision_at_date`     | `document`, `article`, `date`        | `language`                                                                                                 |
+| `verify_legal_quote`        | `evidence_id`, `anchor_id`, `quote`  | —                                                                                                          |
 
 Dates use `YYYY-MM-DD`. `recitals` and `paragraphs` accept either an array such as `[42, 43]` or `{ "from": 42, "to": 50 }`. `version` accepts `original`, `current_consolidated`, or an official consolidation date. Search limits are 1–100.
 
@@ -126,9 +132,11 @@ All 24 official EU languages are normalized. Tested official retrieval covers En
 
 Original acts and consolidated texts remain distinct. `current_consolidated` queries official CELLAR relationships and picks the latest dated consolidation deterministically. Consolidated output includes its consolidation date. Missing consolidation returns `VERSION_NOT_FOUND`; the original is never silently substituted.
 
+`list_document_versions` reports original and consolidated resources plus language availability; it never substitutes a language. `get_document_timeline` keeps originals, corrigenda, amending acts, and consolidations distinct. `get_provision_at_date` selects the greatest safe official snapshot date not later than the request. A known intervening modification returns `VERSION_NOT_FOUND`, and successful results state `legal_effect_not_inferred: true`.
+
 ## Provenance and relationships
 
-Every substantive record identifies publisher, source system, exact source URL, retrieval timestamp, and available CELEX/ELI/ECLI/CELLAR/language identifiers. Example shape:
+Every substantive record identifies publisher, source system, exact source URL, original retrieval timestamp, response hash and byte count, parser identity, snapshot availability, and available CELEX/ELI/ECLI/CELLAR WEMI/language identifiers. Parsed text also includes its normalized-document SHA-256. Example shape:
 
 ```json
 {
@@ -138,11 +146,24 @@ Every substantive record identifies publisher, source system, exact source URL, 
   "retrieved_at": "2026-08-26T00:00:00.000Z",
   "celex": "62021CJ0300",
   "ecli": "ECLI:EU:C:2023:370",
-  "language": "en"
+  "language": "en",
+  "evidence_id": "sha256:...",
+  "snapshot_available": true,
+  "media_type": "application/xhtml+xml",
+  "response_sha256": "...",
+  "normalized_text_sha256": "...",
+  "parser_name": "cellar-official-xhtml",
+  "parser_version": "2.0.0",
+  "http_status": 200,
+  "byte_count": 123456
 }
 ```
 
-Metadata-backed relationships are normalized as `amends`, `amended_by`, `corrects`, `corrected_by`, `implements`, `implemented_by`, `repeals`, `repealed_by`, `consolidates`, and `related_case`. Citation lookup uses CELLAR `cdm:work_cites_work`, not word co-occurrence. Search provision evidence states its scope and never upgrades a document-level metadata link into a specific-article interpretation claim.
+Articles, recitals, article paragraphs and points, case paragraphs, and regulator paragraphs carry deterministic `source_anchor` objects. `verify_legal_quote` compares only against the stored anchored text and returns `exact_match`, `normalized_match`, or `no_match`; it never repairs a quote or searches nearby text. Normalized matching uses `legal-text-nfc-whitespace-v1`: Unicode NFC, NBSP and line-ending normalization, whitespace collapse, and trim. Case, punctuation, numbering, and diacritics remain significant.
+
+Case metadata reconciliation reports `verified_cross_system`, `verified_same_system`, `primary_only`, or `conflict`, with field checks and every discrepancy preserved. CURIA failure never blocks exact primary CELLAR retrieval.
+
+Metadata-backed relationships are normalized as `amends`, `amended_by`, `corrects`, `corrected_by`, `implements`, `implemented_by`, `repeals`, `repealed_by`, `consolidates`, and `related_case`. Evidence uses the explicit taxonomy `textual_mention`, `metadata_relation`, `formal_citation`, `operative_reference`, and `authoritative_classification`. Citation lookup uses CELLAR `cdm:work_cites_work`, not word co-occurrence. `case-law_interpretes_resource_legal` is instrument-level classification only; an Article 82 request never becomes an Article 82 interpretation claim.
 
 Version comparison flattens source hierarchy into stable article/paragraph/point locations, normalizes markup and whitespace, then reports deterministic `added`, `removed`, or `modified` entries. It does not generate a legal summary or call formatting-only changes amendments.
 
@@ -156,13 +177,13 @@ The filesystem cache implements a small `Cache` abstraction and uses atomic writ
 - historical legislation: 30 days;
 - immutable judgments: 180 days.
 
-Delete `.eu-law-cache` to force fresh retrieval. It is not committed.
+HTTP caches are namespaced under `cache/v2`; cache hits preserve the original receipt timestamp and source headers. Authoritative legal text, judgment XHTML, and regulator source files are stored indefinitely and atomically under `evidence/v1`, content-addressed by SHA-256 with mode `0600`. Search and SPARQL responses remain TTL-cached rather than durably snapshotted. Set `EU_LAW_EVIDENCE_ENABLED=false` to emit hashes with `snapshot_available: false`. Delete `.eu-law-cache` to clear both caches and evidence knowingly. It is not committed.
 
 ## Errors
 
 Tool errors set MCP `isError: true` and return a structured object. Codes are:
 
-`DOCUMENT_NOT_FOUND`, `ARTICLE_NOT_FOUND`, `RECITAL_NOT_FOUND`, `CASE_NOT_FOUND`, `PARAGRAPH_NOT_FOUND`, `LANGUAGE_NOT_AVAILABLE`, `AMBIGUOUS_IDENTIFIER`, `VERSION_NOT_FOUND`, `UPSTREAM_UNAVAILABLE`, `UPSTREAM_TIMEOUT`, `UPSTREAM_FORMAT_CHANGED`, `INVALID_IDENTIFIER`, and `INVALID_ARGUMENT`.
+`DOCUMENT_NOT_FOUND`, `ARTICLE_NOT_FOUND`, `RECITAL_NOT_FOUND`, `CASE_NOT_FOUND`, `PARAGRAPH_NOT_FOUND`, `LANGUAGE_NOT_AVAILABLE`, `AMBIGUOUS_IDENTIFIER`, `VERSION_NOT_FOUND`, `EVIDENCE_NOT_FOUND`, `SOURCE_ANCHOR_NOT_FOUND`, `UPSTREAM_UNAVAILABLE`, `UPSTREAM_TIMEOUT`, `UPSTREAM_FORMAT_CHANGED`, `INVALID_IDENTIFIER`, and `INVALID_ARGUMENT`.
 
 Missing provisions are never replaced with nearby source text. Truncated or structurally unexpected material fails explicitly.
 
@@ -238,7 +259,7 @@ npm run test:live
 npm run smoke:mcp
 ```
 
-`npm test` runs deterministic unit and fixture tests. `npm run test:live` opts into limited official-service retrieval and verifies GDPR Articles 5, 6, 22, 25, and 82 in English; Articles 22 and 82 in Swedish; recital 71; original/consolidated metadata; C-300/21 cross-resolution, numbered paragraphs, ranges, missing-paragraph errors, English/Swedish; source consistency; searches; citation metadata; EDPB PDF retrieval; and EDPS metadata. `npm run smoke:mcp` starts the built stdio server through the MCP v2 client and calls every tool plus representative structured errors.
+`npm test` runs deterministic unit, fixture, evidence-store, parser-registry, normalization, HTTP-receipt, and generated-schema contract tests. `npm run test:live` verifies GDPR exact retrieval and quote checks in English and Swedish, its version timeline and point-in-time retrieval, C-300/21 paragraph 50 evidence, reconciliation, searches, citations, EDPB PDF retrieval, and EDPS metadata. `npm run smoke:mcp` starts the built stdio server through the MCP v2 client and calls all 16 tools, quote mismatch, both evidence errors, and representative existing errors.
 
 Full local verification:
 

@@ -11,7 +11,9 @@ export const errorCodes = [
   'UPSTREAM_TIMEOUT',
   'UPSTREAM_FORMAT_CHANGED',
   'INVALID_IDENTIFIER',
-  'INVALID_ARGUMENT'
+  'INVALID_ARGUMENT',
+  'EVIDENCE_NOT_FOUND',
+  'SOURCE_ANCHOR_NOT_FOUND'
 ] as const;
 
 export type ErrorCode = (typeof errorCodes)[number];

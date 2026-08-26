@@ -6,10 +6,10 @@ import {
   failure,
   languageSchema,
   limitSchema,
-  looseOutputSchema,
   readOnlyAnnotations,
   success
 } from './shared.js';
+import { searchEuLawOutputSchema } from './outputSchemas.js';
 
 export function registerSearchEuLaw(server: McpServer, service: LegalResearchService): void {
   server.registerTool(
@@ -27,7 +27,7 @@ export function registerSearchEuLaw(server: McpServer, service: LegalResearchSer
         in_force: z.boolean().optional(),
         limit: limitSchema
       }),
-      outputSchema: looseOutputSchema,
+      outputSchema: searchEuLawOutputSchema,
       annotations: readOnlyAnnotations
     },
     async (input) => {

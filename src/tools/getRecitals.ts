@@ -4,12 +4,12 @@ import type { LegalResearchService } from '../server/services.js';
 import {
   failure,
   languageSchema,
-  looseOutputSchema,
   numberSelectionSchema,
   readOnlyAnnotations,
   success,
   versionSchema
 } from './shared.js';
+import { getRecitalsOutputSchema } from './outputSchemas.js';
 
 export function registerGetRecitals(server: McpServer, service: LegalResearchService): void {
   server.registerTool(
@@ -23,7 +23,7 @@ export function registerGetRecitals(server: McpServer, service: LegalResearchSer
         language: languageSchema,
         version: versionSchema
       }),
-      outputSchema: looseOutputSchema,
+      outputSchema: getRecitalsOutputSchema,
       annotations: readOnlyAnnotations
     },
     async (input) => {

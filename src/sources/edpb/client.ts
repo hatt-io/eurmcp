@@ -1,27 +1,50 @@
 import { extractText, getDocumentProxy } from 'unpdf';
 import { cacheTtl } from '../../cache/cache.js';
 import { EuLawError } from '../../errors/errors.js';
+import {
+  LEGAL_TEXT_NORMALIZATION,
+  normalizeLegalText,
+  sha256
+} from '../../evidence/normalization.js';
+import type { EvidenceStore } from '../../evidence/store.js';
 import type { HttpClient } from '../../http/client.js';
+import type { HttpPayload } from '../../http/client.js';
 import type { Provenance } from '../../types.js';
 import { parseEdpbDocumentPage, parseEdpbSearchPage, sectionsFromPdfText } from './parser.js';
 import type { EdpbPage, EdpbSearchResult } from './types.js';
 
-function provenance(sourceUrl: string, language?: string): Provenance {
+function provenance(
+  payload: HttpPayload,
+  language?: string,
+  snapshotAvailable = false
+): Provenance {
   const value: Provenance = {
     publisher: 'European Data Protection Board',
     source_system: 'EDPB official website',
-    source_url: sourceUrl,
-    retrieved_at: new Date().toISOString()
+    source_url: payload.url,
+    retrieved_at: payload.retrievedAt,
+    source_identifier: payload.url,
+    evidence_id: `sha256:${payload.rawSha256}`,
+    snapshot_available: snapshotAvailable,
+    media_type: payload.contentType,
+    response_sha256: payload.rawSha256,
+    http_status: payload.status,
+    byte_count: payload.byteCount,
+    cache_status: payload.cacheStatus
   };
+  if (payload.headers.etag) value.etag = payload.headers.etag;
+  if (payload.headers['last-modified']) value.last_modified = payload.headers['last-modified'];
   if (language) value.language = language;
   return value;
 }
 
 export class EdpbClient {
   readonly #http: HttpClient;
+  readonly #evidence: EvidenceStore;
 
-  constructor(http: HttpClient) {
+  constructor(http: HttpClient, evidence: EvidenceStore) {
     this.#http = http;
+    this.#evidence = evidence;
   }
 
   async search(input: {
@@ -58,7 +81,7 @@ export class EdpbClient {
         ...(result.status ? { status: result.status } : {}),
         ...(result.topics.length ? { topics: result.topics } : {}),
         page_url: result.pageUrl,
-        provenance: provenance(payload.url)
+        provenance: provenance(payload)
       }));
   }
 
@@ -130,12 +153,49 @@ export class EdpbClient {
         source_url: pdf.url
       });
     }
+    const evidenceId = `sha256:${pdf.rawSha256}`;
+    const sections = sectionsFromPdfText(extracted.text).map((section, sectionIndex) => ({
+      ...section,
+      paragraphs: section.paragraphs.map((paragraph, paragraphIndex) => {
+        const location = paragraph.number
+          ? `Paragraph ${paragraph.number}`
+          : `Section ${sectionIndex + 1} paragraph ${paragraphIndex + 1}`;
+        return {
+          ...paragraph,
+          source_anchor: {
+            anchor_id: sha256(`${evidenceId}\0edpb-pdf-text-1.0.0\0${location}`),
+            kind: 'regulator_paragraph',
+            location,
+            ...(paragraph.number ? { source_element_id: paragraph.number } : {}),
+            structural_path: `pdf-text/section/${sectionIndex + 1}/paragraph/${paragraphIndex + 1}`,
+            text_sha256: sha256(normalizeLegalText(paragraph.text))
+          }
+        };
+      })
+    }));
+    const anchors = sections.flatMap((section) =>
+      section.paragraphs.map((paragraph) => ({ ...paragraph.source_anchor, text: paragraph.text }))
+    );
+    await this.#evidence.put(pdf.bytes, {
+      media_type: pdf.contentType,
+      source_url: pdf.url,
+      retrieved_at: pdf.retrievedAt,
+      parser_name: 'edpb-pdf-text',
+      parser_version: '1.0.0',
+      normalized_text_sha256: sha256(normalizeLegalText(extracted.text)),
+      anchors
+    });
+    const resultProvenance = provenance(pdf, language, this.#evidence.enabled);
+    resultProvenance.normalized_text_sha256 = sha256(normalizeLegalText(extracted.text));
+    resultProvenance.parser_name = 'edpb-pdf-text';
+    resultProvenance.parser_version = '1.0.0';
+    resultProvenance.normalization = LEGAL_TEXT_NORMALIZATION;
     return {
       page,
       language,
       text: extracted.text,
-      sections: sectionsFromPdfText(extracted.text),
-      provenance: provenance(pdf.url, language)
+      sections,
+      provenance: resultProvenance
     };
   }
 }

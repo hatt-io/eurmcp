@@ -1,6 +1,7 @@
 import { isIP } from 'node:net';
 import { EuLawError } from '../errors/errors.js';
 import type { Cache } from '../cache/cache.js';
+import { sha256 } from '../evidence/normalization.js';
 
 const AUTHORITATIVE_HOSTS = new Set([
   'publications.europa.eu',
@@ -37,14 +38,42 @@ type CachedResponse = {
   url: string;
   contentType: string;
   bodyBase64: string;
+  retrievedAt: string;
+  headers: Record<string, string>;
+  status: number;
+  byteCount: number;
+  rawSha256: string;
 };
 
 export type HttpPayload = {
   url: string;
   contentType: string;
   bytes: Uint8Array;
+  retrievedAt: string;
+  headers: Readonly<Record<string, string>>;
+  status: number;
+  byteCount: number;
+  rawSha256: string;
+  cacheStatus: 'hit' | 'miss';
   text(): string;
 };
+
+const RECEIPT_HEADERS = [
+  'content-type',
+  'content-length',
+  'etag',
+  'last-modified',
+  'date'
+] as const;
+
+function receiptHeaders(headers: Headers): Record<string, string> {
+  return Object.fromEntries(
+    RECEIPT_HEADERS.flatMap((name) => {
+      const value = headers.get(name);
+      return value === null ? [] : [[name, value]];
+    })
+  );
+}
 
 function assertAuthoritativeUrl(url: URL): void {
   if (url.protocol !== 'https:') {
@@ -97,12 +126,20 @@ export class HttpClient {
     assertAuthoritativeUrl(initialUrl);
 
     if (options.cacheKey) {
-      const cached = await this.#options.cache.get<CachedResponse>(options.cacheKey);
+      const cached = await this.#options.cache.get<CachedResponse>(`http:v2:${options.cacheKey}`);
       if (cached)
         return this.#payload(
           cached.url,
           cached.contentType,
-          Buffer.from(cached.bodyBase64, 'base64')
+          Buffer.from(cached.bodyBase64, 'base64'),
+          {
+            retrievedAt: cached.retrievedAt,
+            headers: cached.headers,
+            status: cached.status,
+            byteCount: cached.byteCount,
+            rawSha256: cached.rawSha256,
+            cacheStatus: 'hit'
+          }
         );
     }
 
@@ -132,11 +169,27 @@ export class HttpClient {
           });
         }
         const bytes = await this.#readLimited(response, maximum);
-        const payload = this.#payload(response.url, contentType, bytes);
+        const payload = this.#payload(response.url, contentType, bytes, {
+          retrievedAt: new Date().toISOString(),
+          headers: receiptHeaders(response.headers),
+          status: response.status,
+          byteCount: bytes.byteLength,
+          rawSha256: sha256(bytes),
+          cacheStatus: 'miss'
+        });
         if (options.cacheKey && options.ttlSeconds) {
           await this.#options.cache.set<CachedResponse>(
-            options.cacheKey,
-            { url: payload.url, contentType, bodyBase64: Buffer.from(bytes).toString('base64') },
+            `http:v2:${options.cacheKey}`,
+            {
+              url: payload.url,
+              contentType,
+              bodyBase64: Buffer.from(bytes).toString('base64'),
+              retrievedAt: payload.retrievedAt,
+              headers: { ...payload.headers },
+              status: payload.status,
+              byteCount: payload.byteCount,
+              rawSha256: payload.rawSha256
+            },
             options.ttlSeconds
           );
         }
@@ -217,8 +270,13 @@ export class HttpClient {
     });
   }
 
-  #payload(url: string, contentType: string, bytes: Uint8Array): HttpPayload {
-    return { url, contentType, bytes, text: () => new TextDecoder().decode(bytes) };
+  #payload(
+    url: string,
+    contentType: string,
+    bytes: Uint8Array,
+    receipt: Omit<HttpPayload, 'url' | 'contentType' | 'bytes' | 'text'>
+  ): HttpPayload {
+    return { url, contentType, bytes, ...receipt, text: () => new TextDecoder().decode(bytes) };
   }
 
   async #readLimited(response: Response, maximum: number): Promise<Uint8Array> {

@@ -15,13 +15,14 @@ The basic server needs no secrets or external infrastructure.
 | --- | --- | --- | --- |
 | `EU_LAW_CACHE_DIR` | `.eu-law-cache` | Writable directory | Local filesystem cache |
 | `EU_LAW_CACHE_ENABLED` | `true` | Boolean | Enable or disable cache |
+| `EU_LAW_EVIDENCE_ENABLED` | `true` | Boolean | Persist authoritative source evidence snapshots |
 | `EU_LAW_HTTP_TIMEOUT_MS` | `30000` | 1000–120000 | Per-request timeout |
 | `EU_LAW_LOG_LEVEL` | `warn` | silent, error, warn, info, debug | Diagnostic verbosity |
 
 ## Example
 
 ```bash
-EU_LAW_CACHE_DIR=.eu-law-cache EU_LAW_HTTP_TIMEOUT_MS=60000 npm start
+EU_LAW_CACHE_DIR=.eu-law-cache EU_LAW_EVIDENCE_ENABLED=true EU_LAW_HTTP_TIMEOUT_MS=60000 npm start
 ```
 
 ## Package security policy
@@ -41,6 +42,7 @@ The release-age gate is measured in days. Exact dependency versions and `package
 - `src/config.ts` validates environment values.
 - Invalid values throw `INVALID_ARGUMENT`.
 - Cache paths are resolved before use.
+- Evidence snapshots use `EU_LAW_CACHE_DIR/evidence/v1` and remain available until an operator clears them.
 - No configuration option expands the upstream domain allowlist.
 
 Related: [[04 Operations/Security and Caching]].

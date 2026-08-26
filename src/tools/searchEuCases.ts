@@ -7,10 +7,10 @@ import {
   failure,
   languageSchema,
   limitSchema,
-  looseOutputSchema,
   readOnlyAnnotations,
   success
 } from './shared.js';
+import { searchEuCasesOutputSchema } from './outputSchemas.js';
 
 export function registerSearchEuCases(server: McpServer, service: LegalResearchService): void {
   server.registerTool(
@@ -32,7 +32,7 @@ export function registerSearchEuCases(server: McpServer, service: LegalResearchS
         language: languageSchema,
         limit: limitSchema
       }),
-      outputSchema: looseOutputSchema,
+      outputSchema: searchEuCasesOutputSchema,
       annotations: readOnlyAnnotations
     },
     async (input) => {

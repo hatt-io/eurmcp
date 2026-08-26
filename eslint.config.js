@@ -9,7 +9,9 @@ export default tseslint.config(
       'node_modules/**',
       '.eu-law-cache/**',
       'eslint.config.js',
-      'vitest.config.ts'
+      'vitest.config.ts',
+      'eurmcp/.vitepress/cache/**',
+      'eurmcp/.vitepress/dist/**'
     ]
   },
   js.configs.recommended,

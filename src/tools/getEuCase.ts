@@ -1,13 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import type { LegalResearchService } from '../server/services.js';
-import {
-  failure,
-  languageSchema,
-  looseOutputSchema,
-  readOnlyAnnotations,
-  success
-} from './shared.js';
+import { failure, languageSchema, readOnlyAnnotations, success } from './shared.js';
+import { getEuCaseOutputSchema } from './outputSchemas.js';
 
 export function registerGetEuCase(server: McpServer, service: LegalResearchService): void {
   server.registerTool(
@@ -21,7 +16,7 @@ export function registerGetEuCase(server: McpServer, service: LegalResearchServi
         language: languageSchema,
         document_type: z.enum(['judgment', 'order', 'opinion']).optional()
       }),
-      outputSchema: looseOutputSchema,
+      outputSchema: getEuCaseOutputSchema,
       annotations: readOnlyAnnotations
     },
     async (input) => {

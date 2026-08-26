@@ -21,8 +21,9 @@ flowchart LR
   A --> H[Restricted HTTP client]
   H --> U[Official EU source]
   U --> P[Dedicated parser]
-  P --> N[Normalized result]
-  N --> R[Provenance]
+  P --> N[Normalized result and anchors]
+  N --> E[Content-addressed evidence]
+  E --> R[Strict result schema and provenance]
   R --> C
 ```
 
@@ -34,7 +35,7 @@ flowchart LR
 
 ### Service layer
 
-`src/server/services.ts` coordinates deterministic identifier resolution, versions, adapters, parsing, normalization, provenance, and structural diffs.
+`src/server/services.ts` coordinates deterministic identifier resolution, temporal snapshots, official-source reconciliation, adapters, parsing, normalization, evidence, provenance, and structural diffs.
 
 ### Source adapters
 
@@ -48,6 +49,7 @@ flowchart LR
 
 - `src/http/client.ts`: allowlist, redirects, retries, backoff, timeout, content type, streaming size cap.
 - `src/cache/cache.ts`: cache abstraction, null cache, atomic filesystem cache.
+- `src/evidence`: versioned legal-text normalization, source anchors, durable evidence, and quote verification.
 - `src/errors/errors.ts`: stable typed error model.
 
 ## Source model
@@ -61,6 +63,8 @@ CELLAR follows work → expression → manifestation → item. The server resolv
 - Source numbering is never generated.
 - Consolidated text is not an amending act.
 - Every substantive result has provenance.
+- Exact excerpts carry deterministic source anchors.
+- Known intervening modifications prevent unsafe point-in-time retrieval.
 - stdout remains an MCP-only channel.
 
 Related: [[03 Internals/Data Contracts]] and [[04 Operations/Security and Caching]].

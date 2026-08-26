@@ -1,0 +1,51 @@
+{
+  "licence": "European Commission reuse decision 2011/833/EU",
+  "retrieved_at": "2026-08-26",
+  "fixtures": [
+    {
+      "file": "gdpr-24-language-fragments.json",
+      "languages": 24,
+      "format": "application/xhtml+xml fragments",
+      "source_url": "https://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1",
+      "fixture_sha256": "5b3f2188bd993c1ab28c34225c5172b624b6951ee11caeca9a6efa84d8e04acb"
+    },
+    {
+      "file": "gdpr-en.xhtml",
+      "language": "en",
+      "format": "application/xhtml+xml",
+      "source_url": "https://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0006.03/DOC_1",
+      "original_response_sha256": "962539af03738bf552319ff4ce42d69e5f95a576307c4dfed7bf87e81b646b9d",
+      "fixture_sha256": "f3b553a1eb0aabfcd4c900fb9be1dfcbbae1045aa0bb8a41dd99fd66168195e7"
+    },
+    {
+      "file": "gdpr-consolidated-en.xhtml",
+      "language": "en",
+      "format": "application/xhtml+xml",
+      "source_url": "https://publications.europa.eu/resource/cellar/5f2552c2-cc45-11e6-ad7c-01aa75ed71a1.0022.03/DOC_1",
+      "original_response_sha256": "a681ff22f32f125749af6e96947224369efc132edb8a95b12637e357df1056de",
+      "fixture_sha256": "220d12a0b136ea013de76dabfe10d19e993c3fefab21a94c8e43afbe5a962952"
+    },
+    {
+      "file": "c-300-21-en.xhtml",
+      "language": "en",
+      "format": "application/xhtml+xml",
+      "source_url": "https://publications.europa.eu/resource/cellar/b3fcbc6d-ea58-11ed-a05c-01aa75ed71a1.0006.05/DOC_1",
+      "original_response_sha256": "be966e982aa666287b3c89a0592139b4e1d84e984270dbd9d06b365342a96486",
+      "fixture_sha256": "1bc567ba66b1dcc7d5e801fd6fb7c43959bb315df11bc82abf53861f686210b6"
+    },
+    {
+      "file": "edpb-search.html",
+      "language": "en",
+      "format": "text/html",
+      "source_url": "https://www.edpb.europa.eu/documents_en",
+      "fixture_sha256": "df9b7c5650d25828874903864c094760067cc2904265dbe7b75112ebe9ca6a65"
+    },
+    {
+      "file": "edpb-document.html",
+      "language": "en",
+      "format": "text/html",
+      "source_url": "https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-052020-consent-under-regulation-2016679_en",
+      "fixture_sha256": "8e09a04c8674e92c3c35fc35e2e91e44a8875ba11eb383fe1e715063599a7249"
+    }
+  ]
+}
