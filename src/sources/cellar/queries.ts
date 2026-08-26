@@ -131,7 +131,7 @@ export function searchCaseLaw(input: CaseSearchQuery): string {
     ? `?work cdm:resource_legal_id_celex ?exactCelex . FILTER(STR(?exactCelex) = ${sparqlString(input.celex)})`
     : input.ecli
       ? `?work cdm:case-law_ecli ?exactEcli . FILTER(STR(?exactEcli) = ${sparqlString(input.ecli)})`
-      : '?work cdm:resource_legal_id_celex ?requiredCelex . FILTER(STRSTARTS(STR(?requiredCelex), "6"))';
+      : '';
   const courtCode =
     input.court === 'general_court' ? 'T' : input.court === 'court_of_justice' ? 'C' : undefined;
   const typeCode =
@@ -143,21 +143,22 @@ export function searchCaseLaw(input: CaseSearchQuery): string {
           ? 'C'
           : undefined;
   return `${prefixes}
-SELECT DISTINCT ?work ?celex ?ecli ?title ?dateDocument ?resourceType ?chamber
+SELECT DISTINCT ?work ?celex ?ecli ?title ?dateDocument ?resourceType ?chamber ?rank
 WHERE {
   ${exact}
   ?work cdm:resource_legal_id_celex ?celex .
+  FILTER(STRSTARTS(STR(?celex), "6"))
   ?expression cdm:expression_belongs_to_work ?work ;
     cdm:expression_uses_language <http://publications.europa.eu/resource/authority/language/${input.language}> ;
     cdm:expression_title ?title .
-  ${input.query ? `?title bif:contains ${fullTextExpression(input.query)} .` : ''}
+  ${input.query ? `?title bif:contains ${fullTextExpression(input.query)} OPTION (score ?rank) .` : ''}
   ${input.interpretedCelex ? `?interpreted cdm:resource_legal_id_celex ?interpretedCelex . FILTER(STR(?interpretedCelex) = ${sparqlString(input.interpretedCelex)}) ?work cdm:case-law_interpretes_resource_legal ?interpreted .` : ''}
   ${WORK_FIELDS}
   ${dateFilter('?dateDocument', input.dateFrom, input.dateTo)}
   ${courtCode ? `FILTER(SUBSTR(STR(?celex), 6, 1) = ${sparqlString(courtCode)})` : ''}
   ${typeCode ? `FILTER(SUBSTR(STR(?celex), 7, 1) = ${sparqlString(typeCode)})` : ''}
 }
-ORDER BY DESC(?dateDocument) ?celex
+ORDER BY DESC(?rank) DESC(?dateDocument) ?celex
 LIMIT ${input.limit}`;
 }
 

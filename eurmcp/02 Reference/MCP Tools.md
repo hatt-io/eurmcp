@@ -48,6 +48,7 @@ All 16 tools are read-only and return MCP structured output. Every success and s
 - Versions accept `original`, `current_consolidated`, or an official consolidation date.
 - Missing material returns a structured error and never a neighboring provision.
 - Language availability is reported without fallback or substitution.
+- Case search title queries use AND semantics. Instrument filters never claim article-level relevance and are never silently discarded.
 - Quote verification accepts only an evidence ID and anchor ID returned by this server; it never accepts URLs, paths, or selectors.
 
 Query the interactive [[Tool Catalog.base|Tool Catalog]] for a property-driven view.

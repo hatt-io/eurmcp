@@ -23,6 +23,7 @@ Search Court of Justice and General Court metadata.
   case_number?: string;
   ecli?: string;
   celex?: string;
+  interpreted_celex?: string;
   provision?: string;
   date_from?: string;
   date_to?: string;
@@ -34,6 +35,12 @@ Search Court of Justice and General Court metadata.
 ```
 
 At least one search criterion is required.
+
+`celex` accepts only an exact case-law CELEX. Use `interpreted_celex` for a legislation CELEX whose instrument-level CELLAR relationship should be searched.
+
+`query` applies AND semantics to searchable tokens and matches only the official case title. Title matches are relevance-ranked.
+
+`provision` must contain a recognized instrument, such as `Article 82 GDPR` or `Article 82 of Regulation (EU) 2016/679`. It resolves aliases such as `GDPR`, but CELLAR establishes only an instrument-level relationship. It does not establish that the case mentions or interprets the requested article. An unrecognized instrument returns `INVALID_ARGUMENT`; the filter is never silently discarded.
 
 ## Output
 

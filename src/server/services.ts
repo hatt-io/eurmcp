@@ -6,6 +6,9 @@ import { EuLawError } from '../errors/errors.js';
 import {
   caseNumberToCelex,
   celexToCaseNumber,
+  instrumentAliases,
+  normalizeCelex,
+  normalizeEcli,
   parseIdentifier,
   type CaseIdentifier,
   type LegislationIdentifier
@@ -129,15 +132,58 @@ function courtFromCelex(celex: string): string {
   return code === 'C' ? 'Court of Justice' : code === 'T' ? 'General Court' : 'EU court';
 }
 
-function extractInstrumentFromProvision(provision: string): string | undefined {
+function extractInstrumentFromProvision(provision: string): string {
   const match = /(?:Regulation|Directive|Decision)\s*(?:\(EU\))?\s*\d{4}\/\d+/i.exec(provision);
-  if (!match) return undefined;
-  try {
+  if (match) {
     const parsed = parseIdentifier(match[0]);
-    return parsed.kind === 'legislation' ? parsed.celex : undefined;
-  } catch {
-    return undefined;
+    if (parsed.kind === 'legislation' && parsed.celex) return parsed.celex;
   }
+
+  const normalized = provision.normalize('NFKC').toUpperCase();
+  const alias = Object.keys(instrumentAliases)
+    .sort((left, right) => right.length - left.length)
+    .find((candidate) => {
+      const escaped = candidate.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp(`(?:^|[^\\p{L}\\p{N}])${escaped}(?:$|[^\\p{L}\\p{N}])`, 'u').test(
+        normalized
+      );
+    });
+  if (alias) {
+    const parsed = parseIdentifier(alias);
+    if (parsed.kind === 'legislation' && parsed.celex) return parsed.celex;
+  }
+
+  throw new EuLawError(
+    'INVALID_ARGUMENT',
+    'Provision must identify an instrument, for example "Article 82 GDPR" or "Article 82 of Regulation (EU) 2016/679"',
+    { argument: 'provision', value: provision }
+  );
+}
+
+function normalizeCaseCelex(celex: string): string {
+  const normalized = normalizeCelex(celex);
+  const parsed = parseIdentifier(normalized);
+  if (parsed.kind !== 'case') {
+    throw new EuLawError(
+      'INVALID_ARGUMENT',
+      'celex must be a case-law CELEX identifier; use interpreted_celex for legislation',
+      { argument: 'celex', value: celex, expected: 'case-law CELEX beginning with 6' }
+    );
+  }
+  return normalized;
+}
+
+function normalizeInterpretedCelex(celex: string): string {
+  const normalized = normalizeCelex(celex);
+  const parsed = parseIdentifier(normalized);
+  if (parsed.kind !== 'legislation') {
+    throw new EuLawError('INVALID_ARGUMENT', 'interpreted_celex must identify legislation', {
+      argument: 'interpreted_celex',
+      value: celex,
+      expected: 'legislation CELEX'
+    });
+  }
+  return normalized;
 }
 
 export class LegalResearchService {
@@ -730,6 +776,7 @@ export class LegalResearchService {
     case_number?: string;
     ecli?: string;
     celex?: string;
+    interpreted_celex?: string;
     provision?: string;
     date_from?: string;
     date_to?: string;
@@ -739,17 +786,36 @@ export class LegalResearchService {
     limit?: number;
   }) {
     const lang = normalizeLanguage(input.language);
-    const celex =
-      input.celex ??
-      (input.case_number ? caseNumberToCelex(input.case_number, input.document_type) : undefined);
-    const interpretedCelex = input.provision
-      ? extractInstrumentFromProvision(input.provision)
-      : undefined;
+    const exactIdentifiers = [input.case_number, input.ecli, input.celex].filter(Boolean);
+    if (exactIdentifiers.length > 1) {
+      throw new EuLawError('INVALID_ARGUMENT', 'Provide only one of case_number, ecli, or celex', {
+        arguments: ['case_number', 'ecli', 'celex']
+      });
+    }
+    if (input.provision && input.interpreted_celex) {
+      throw new EuLawError(
+        'INVALID_ARGUMENT',
+        'Provide only one of provision or interpreted_celex',
+        { arguments: ['provision', 'interpreted_celex'] }
+      );
+    }
+
+    const celex = input.celex
+      ? normalizeCaseCelex(input.celex)
+      : input.case_number
+        ? caseNumberToCelex(input.case_number, input.document_type)
+        : undefined;
+    const ecli = input.ecli ? normalizeEcli(input.ecli) : undefined;
+    const interpretedCelex = input.interpreted_celex
+      ? normalizeInterpretedCelex(input.interpreted_celex)
+      : input.provision
+        ? extractInstrumentFromProvision(input.provision)
+        : undefined;
     const rows = await this.#cellar.searchCaseLaw({
       ...(input.query ? { query: input.query } : {}),
       language: lang.cellar,
       ...(celex ? { celex } : {}),
-      ...(input.ecli ? { ecli: input.ecli.toUpperCase() } : {}),
+      ...(ecli ? { ecli } : {}),
       ...(interpretedCelex ? { interpretedCelex } : {}),
       ...(input.date_from ? { dateFrom: input.date_from } : {}),
       ...(input.date_to ? { dateTo: input.date_to } : {}),
@@ -772,7 +838,7 @@ export class LegalResearchService {
               }
             ]
           : []),
-        ...(input.provision && interpretedCelex
+        ...(interpretedCelex
           ? [
               {
                 field: 'case-law_interpretes_resource_legal',
